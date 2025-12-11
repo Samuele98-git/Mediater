@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mediater Library</title>
+    <style>
+        :root { --red: #e50914; --bg: #141414; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        
+        .navbar { padding: 20px 4%; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(#000, transparent); position: fixed; top:0; width: 100%; box-sizing: border-box; z-index: 50; }
+        .logo { color: var(--red); font-size: 1.8rem; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+        .btn { padding: 8px 16px; border-radius: 4px; border:none; cursor: pointer; font-weight: bold; }
+        .btn-red { background: var(--red); color: white; }
+        .btn-trans { background: rgba(255,255,255,0.2); color: white; }
+
+        /* HERO SECTION */
+        .hero { height: 60vh; display: flex; align-items: center; justify-content: center; text-align: center; background: radial-gradient(circle, #222 0%, #000 100%); margin-bottom: -50px; }
+        .hero h1 { font-size: 4rem; margin: 0 0 20px 0; text-shadow: 0 4px 10px rgba(0,0,0,0.8); }
+        .hero p { font-size: 1.2rem; color: #aaa; max-width: 600px; margin: 0 auto; }
+
+        .container { padding: 50px 4% 50px; position: relative; z-index: 10; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        
+        .poster { aspect-ratio: 2/3; background: #222; border-radius: 4px; overflow: hidden; position: relative; cursor: pointer; transition: transform 0.2s; border: 1px solid #333; }
+        .poster:hover { transform: scale(1.05); z-index: 10; border-color: #fff; }
+        .poster img, .poster video { width: 100%; height: 100%; object-fit: cover; }
+        .poster-title { position: absolute; bottom: 0; width: 100%; padding: 10px; background: rgba(0,0,0,0.8); text-align: center; font-weight: bold; }
+
+        /* ADMIN PANEL */
+        #adminPanel { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; padding: 40px; }
+        .tabs { display: flex; gap: 20px; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .tab { cursor: pointer; padding: 10px; color: #777; font-weight: bold; }
+        .tab.active { color: white; border-bottom: 2px solid var(--red); }
+        
+        .panel-layout { display: flex; height: 80%; gap: 30px; }
+        .col-left { flex: 1; border-right: 1px solid #333; padding-right: 20px; overflow-y: auto; }
+        .col-right { flex: 2; overflow-y: auto; }
+        
+        .list-item { padding: 10px; background: #222; margin-bottom: 5px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; }
+        .list-item.active { background: #444; border-left: 4px solid var(--red); }
+
+        /* LOGIN */
+        #loginOverlay { position: fixed; inset: 0; background: #000; z-index: 3000; display: flex; align-items: center; justify-content: center; }
+        .login-box { width: 300px; background: #111; padding: 40px; border: 1px solid #333; text-align: center; border-radius: 8px; }
+        .login-input { width: 100%; padding: 10px; margin-bottom: 15px; background: #222; border: none; color: white; box-sizing: border-box; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h2 style="color:var(--red); margin-top:0;">Mediater</h2>
+            <input type="text" id="user" class="login-input" placeholder="Username">
+            <input type="password" id="pass" class="login-input" placeholder="Password">
+            <button class="btn btn-red" style="width:100%" onclick="login()">Enter</button>
+        </div>
+    </div>
+
+    <div class="navbar">
+        <div class="logo">Mediater</div>
+        <div>
+            <span id="welcomeMsg" style="margin-right:15px; color:#aaa;"></span>
+            <button id="adminBtn" class="btn btn-trans" style="display:none" onclick="toggleAdmin()">Admin</button>
+            <button class="btn btn-red" onclick="logout()">Sign Out</button>
+        </div>
+    </div>
+
+    <div class="hero">
+        <div>
+            <h1>Welcome to Mediater!</h1>
+            <p>Your private, high-performance streaming library.</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2 style="color:#777; border-bottom:1px solid #333; padding-bottom:10px;">My Library</h2>
+        <div class="grid" id="grid"></div>
+    </div>
+
+    <div id="adminPanel">
+        <div style="display:flex; justify-content:space-between;">
+            <h2>Admin Dashboard</h2>
+            <button class="btn btn-red" onclick="saveAndClose()">💾 Save & Close</button>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('content')" id="tabContent">Manage Content</div>
+            <div class="tab" onclick="switchTab('users')" id="tabUsers">Manage Users</div>
+        </div>
+
+        <div id="viewContent" class="panel-layout">
+            <div class="col-left">
+                <h3>Playlists</h3>
+                <button class="btn btn-trans" style="width:100%; margin-bottom:10px;" onclick="createPlaylist()">+ New Playlist</button>
+                <div id="plList"></div>
+            </div>
+            <div class="col-right">
+                <h3 id="plHeader">Videos</h3>
+                
+                <div style="background:#222; padding:15px; margin-bottom:15px; border-radius:4px; display:flex; gap:10px; flex-wrap:wrap;">
+                    <input type="file" id="vidInput" hidden>
+                    <button class="btn btn-red" onclick="document.getElementById('vidInput').click()">+ Add Video</button>
+                    
+                    <input type="file" id="coverInput" hidden>
+                    <button class="btn btn-trans" onclick="document.getElementById('coverInput').click()">🖼 Set Cover Image</button>
+                    
+                    <span id="status" style="color:#aaa; font-size:0.9rem; padding-top:5px;"></span>
+                </div>
+                
+                <div id="vidList"></div>
+            </div>
+        </div>
+
+        <div id="viewUsers" class="panel-layout" style="display:none;">
+            <div class="col-left">
+                <h3>Add User</h3>
+                <input type="text" id="newUser" placeholder="Username" class="login-input">
+                <input type="text" id="newPass" placeholder="Password" class="login-input">
+                <select id="newRole" class="login-input">
+                    <option value="USER">Viewer</option>
+                    <option value="ADMIN">Admin</option>
+                </select>
+                <button class="btn btn-red" style="width:100%" onclick="addUser()">Create User</button>
+            </div>
+            <div class="col-right">
+                <h3>Existing Users</h3>
+                <div id="userList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let db = { playlists: [], users: [] };
+        let activePlIdx = 0;
+
+        window.onload = async () => {
+            const res = await fetch('/api/session');
+            const data = await res.json();
+            if (data.loggedIn) start(data.role, data.username);
+        };
+        async function login() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+            const res = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p}) });
+            const data = await res.json();
+            if(data.success) start(data.role, u);
+            else alert("Invalid credentials");
+        }
+        function start(role, username) {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('welcomeMsg').innerText = `Hi, ${username}`;
+            if(role === 'ADMIN') document.getElementById('adminBtn').style.display = 'inline-block';
+            loadData();
+        }
+        async function logout() { await fetch('/api/logout', {method:'POST'}); location.reload(); }
+
+        async function loadData() {
+            const res = await fetch('/api/data');
+            db = await res.json();
+            renderGrid();
+            renderAdminContent();
+            renderAdminUsers();
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            db.playlists.forEach((pl, idx) => {
+                const el = document.createElement('div');
+                el.className = 'poster';
+                el.onclick = () => location.href = `playlist.html?id=${idx}`;
+                
+                let img = '';
+                if(pl.cover) img = `<img src="/stream/${pl.cover}">`;
+                else if(pl.videos.length > 0 && pl.videos[0].match(/\.(jpg|png)$/)) img = `<img src="/stream/${pl.videos[0]}">`;
+                else if(pl.videos.length > 0) img = `<video src="/stream/${pl.videos[0]}#t=10.0" muted></video>`;
+                else img = `<div style="padding:20px; color:#555;">No Content</div>`;
+
+                el.innerHTML = `${img}<div class="poster-title">${pl.name}</div>`;
+                grid.appendChild(el);
+            });
+        }
+
+        function toggleAdmin() {
+            const p = document.getElementById('adminPanel');
+            p.style.display = p.style.display === 'none' ? 'block' : 'none';
+        }
+        function switchTab(tab) {
+            document.getElementById('tabContent').className = `tab ${tab==='content'?'active':''}`;
+            document.getElementById('tabUsers').className = `tab ${tab==='users'?'active':''}`;
+            document.getElementById('viewContent').style.display = tab==='content'?'flex':'none';
+            document.getElementById('viewUsers').style.display = tab==='users'?'flex':'none';
+        }
+
+        function renderAdminContent() {
+            const plList = document.getElementById('plList');
+            plList.innerHTML = '';
+            db.playlists.forEach((pl, idx) => {
+                const item = document.createElement('div');
+                item.className = `list-item ${idx === activePlIdx ? 'active' : ''}`;
+                item.innerHTML = `<span>${pl.name}</span> <span onclick="delPl(${idx})" style="color:red; cursor:pointer">✖</span>`;
+                item.onclick = (e) => { if(e.target.tagName!=='SPAN'){ activePlIdx = idx; renderAdminContent(); }};
+                plList.appendChild(item);
+            });
+
+            const vidList = document.getElementById('vidList');
+            vidList.innerHTML = '';
+            document.getElementById('plHeader').innerText = `Editing: ${db.playlists[activePlIdx]?.name || 'None'}`;
+            if(db.playlists[activePlIdx]) {
+                db.playlists[activePlIdx].videos.forEach((vid, vIdx) => {
+                    const item = document.createElement('div');
+                    item.className = 'list-item';
+                    item.innerHTML = `<span>${vid}</span> <button class="btn-trans" onclick="delVid(${vIdx})">Del</button>`;
+                    vidList.appendChild(item);
+                });
+            }
+        }
+        
+        function renderAdminUsers() {
+            const list = document.getElementById('userList');
+            list.innerHTML = '';
+            db.users.forEach(u => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                // NEW: Added Change Password Button (Key Icon)
+                item.innerHTML = `
+                    <span><b>${u.username}</b> (${u.role})</span> 
+                    <div>
+                        <button class="btn-trans" style="margin-right:5px;" onclick="changePass('${u.username}')" title="Change Password">🔑</button>
+                        ${u.username!=='admin'?`<button class="btn-red" onclick="delUser('${u.username}')">Delete</button>`:''}
+                    </div>`;
+                list.appendChild(item);
+            });
+        }
+
+        async function addUser() {
+            const u=document.getElementById('newUser').value, p=document.getElementById('newPass').value, r=document.getElementById('newRole').value;
+            if(!u || !p) return alert("Fill fields");
+            const res = await fetch('/api/users', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u, password:p, role:r})});
+            if(res.ok) { document.getElementById('newUser').value=''; loadData(); } else alert("Error/Exists");
+        }
+        
+        async function delUser(name) {
+            if(confirm('Delete user?')) { await fetch(`/api/users/${name}`, {method:'DELETE'}); loadData(); }
+        }
+
+        // NEW: CHANGE PASSWORD FUNCTION
+        async function changePass(username) {
+            const newPass = prompt(`Enter new password for ${username}:`);
+            if (newPass) {
+                const res = await fetch(`/api/users/${username}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ password: newPass })
+                });
+                if (res.ok) alert("Password Updated!");
+                else alert("Error updating password");
+            }
+        }
+        
+        function createPlaylist() { const n = prompt("Name:"); if(n){ db.playlists.push({name:n, videos:[]}); renderAdminContent(); }}
+        function delPl(idx) { if(confirm('Delete?')) { db.playlists.splice(idx,1); activePlIdx=0; renderAdminContent(); }}
+        function delVid(idx) { db.playlists[activePlIdx].videos.splice(idx,1); renderAdminContent(); }
+        async function saveAndClose() {
+            await fetch('/api/save', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({playlists: db.playlists}) });
+            toggleAdmin(); loadData();
+        }
+
+        document.getElementById('vidInput').onchange = async (e) => uploadFile(e.target.files[0], `/api/upload/${activePlIdx}`);
+        document.getElementById('coverInput').onchange = async (e) => uploadFile(e.target.files[0], `/api/cover/${activePlIdx}`);
+
+        async function uploadFile(file, url) {
+            if(!file) return;
+            const fd = new FormData(); fd.append('file', file);
+            document.getElementById('status').innerText = "Uploading...";
+            await fetch(url, { method:'POST', body: fd });
+            document.getElementById('status').innerText = "Done!";
+            loadData();
+        }
+    </script>
+</body>
+</html>

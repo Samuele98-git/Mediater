@@ -1,0 +1,4 @@
+{
+  "ignore": ["uploads/*", "public/*", "data.json"],
+  "ext": "js,json"
+}
