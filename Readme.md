@@ -1,0 +1,8 @@
+
+# Default login:
+
+User:
+```admin```
+
+Password:
+```123```
