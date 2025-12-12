@@ -7,7 +7,7 @@
 
 ## ✨ Features
 
-* **📋 Playlist Management:** Create custom playlists, upload custom covers, and drag-and-drop to reorder episodes.
+* **📋 Playlist Management:** Create custom playlists, upload custom covers, and reorder episodes.
 * **👥 Multi-User System:** Role-based access (Admin vs. Viewer). Admins can upload content; Viewers can only watch.
 * **⚡ Smart Streaming:** Supports HTTP Range Requests for instant seeking and fast playback on mobile/TV.
 * **🔄 Auto-Play:** Automatically plays the next video in the playlist (Binge-watch mode).
