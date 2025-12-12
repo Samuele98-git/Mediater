@@ -81,7 +81,7 @@
     <div id="adminPanel">
         <div style="display:flex; justify-content:space-between;">
             <h2>Admin Dashboard</h2>
-            <button class="btn btn-red" onclick="saveAndClose()">💾 Save & Close</button>
+            <button class="btn btn-red" onclick="closeAdmin()">Close Panel</button>
         </div>
         
         <div class="tabs">
@@ -134,6 +134,7 @@
         let db = { playlists: [], users: [] };
         let activePlIdx = 0;
 
+        // --- AUTH ---
         window.onload = async () => {
             const res = await fetch('/api/session');
             const data = await res.json();
@@ -155,6 +156,7 @@
         }
         async function logout() { await fetch('/api/logout', {method:'POST'}); location.reload(); }
 
+        // --- DATA SYNC ---
         async function loadData() {
             const res = await fetch('/api/data');
             db = await res.json();
@@ -163,6 +165,17 @@
             renderAdminUsers();
         }
 
+        // --- HELPER: SAVE TO SERVER ---
+        async function saveDB() {
+            await fetch('/api/save', { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify({ playlists: db.playlists })
+            });
+            await loadData(); // Reload to refresh view
+        }
+
+        // --- UI RENDERING ---
         function renderGrid() {
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
@@ -186,6 +199,10 @@
             const p = document.getElementById('adminPanel');
             p.style.display = p.style.display === 'none' ? 'block' : 'none';
         }
+        function closeAdmin() {
+            document.getElementById('adminPanel').style.display = 'none';
+            renderGrid(); // Refresh grid when closing
+        }
         function switchTab(tab) {
             document.getElementById('tabContent').className = `tab ${tab==='content'?'active':''}`;
             document.getElementById('tabUsers').className = `tab ${tab==='users'?'active':''}`;
@@ -206,12 +223,19 @@
 
             const vidList = document.getElementById('vidList');
             vidList.innerHTML = '';
-            document.getElementById('plHeader').innerText = `Editing: ${db.playlists[activePlIdx]?.name || 'None'}`;
+            document.getElementById('plHeader').innerText = `Editing: ${db.playlists[activePlIdx]?.name || 'Select a Playlist'}`;
+            
             if(db.playlists[activePlIdx]) {
                 db.playlists[activePlIdx].videos.forEach((vid, vIdx) => {
                     const item = document.createElement('div');
                     item.className = 'list-item';
-                    item.innerHTML = `<span>${vid}</span> <button class="btn-trans" onclick="delVid(${vIdx})">Del</button>`;
+                    item.innerHTML = `
+                        <span style="flex:1; margin-right:10px; overflow:hidden; text-overflow:ellipsis;">${vid}</span> 
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn-trans" onclick="moveVid(${vIdx}, -1)">⬆</button>
+                            <button class="btn-trans" onclick="moveVid(${vIdx}, 1)">⬇</button>
+                            <button class="btn-red" style="padding:4px 8px;" onclick="delVid(${vIdx})">Del</button>
+                        </div>`;
                     vidList.appendChild(item);
                 });
             }
@@ -223,15 +247,48 @@
             db.users.forEach(u => {
                 const item = document.createElement('div');
                 item.className = 'list-item';
-                // NEW: Added Change Password Button (Key Icon)
                 item.innerHTML = `
                     <span><b>${u.username}</b> (${u.role})</span> 
                     <div>
-                        <button class="btn-trans" style="margin-right:5px;" onclick="changePass('${u.username}')" title="Change Password">🔑</button>
+                        <button class="btn-trans" style="margin-right:5px;" onclick="changePass('${u.username}')">🔑</button>
                         ${u.username!=='admin'?`<button class="btn-red" onclick="delUser('${u.username}')">Delete</button>`:''}
                     </div>`;
                 list.appendChild(item);
             });
+        }
+
+        // --- ACTIONS ---
+        
+        async function createPlaylist() { 
+            const n = prompt("Name:"); 
+            if(n){ 
+                db.playlists.push({name:n, videos:[]}); 
+                await saveDB(); 
+            }
+        }
+
+        async function delPl(idx) { 
+            if(confirm('Delete?')) { 
+                db.playlists.splice(idx,1); 
+                activePlIdx = 0; 
+                await saveDB(); 
+            }
+        }
+
+        async function delVid(idx) { 
+            db.playlists[activePlIdx].videos.splice(idx,1); 
+            await saveDB(); 
+        }
+
+        // NEW: REORDER FUNCTION
+        async function moveVid(idx, dir) {
+            const arr = db.playlists[activePlIdx].videos;
+            if (idx + dir < 0 || idx + dir >= arr.length) return; // Prevent out of bounds
+            
+            // Swap items
+            [arr[idx], arr[idx+dir]] = [arr[idx+dir], arr[idx]];
+            
+            await saveDB(); // Save instantly
         }
 
         async function addUser() {
@@ -245,38 +302,32 @@
             if(confirm('Delete user?')) { await fetch(`/api/users/${name}`, {method:'DELETE'}); loadData(); }
         }
 
-        // NEW: CHANGE PASSWORD FUNCTION
         async function changePass(username) {
             const newPass = prompt(`Enter new password for ${username}:`);
             if (newPass) {
-                const res = await fetch(`/api/users/${username}`, {
-                    method: 'PUT',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ password: newPass })
-                });
-                if (res.ok) alert("Password Updated!");
-                else alert("Error updating password");
+                await fetch(`/api/users/${username}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ password: newPass }) });
+                alert("Password Updated!");
             }
         }
-        
-        function createPlaylist() { const n = prompt("Name:"); if(n){ db.playlists.push({name:n, videos:[]}); renderAdminContent(); }}
-        function delPl(idx) { if(confirm('Delete?')) { db.playlists.splice(idx,1); activePlIdx=0; renderAdminContent(); }}
-        function delVid(idx) { db.playlists[activePlIdx].videos.splice(idx,1); renderAdminContent(); }
-        async function saveAndClose() {
-            await fetch('/api/save', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({playlists: db.playlists}) });
-            toggleAdmin(); loadData();
-        }
 
+        // --- UPLOADS ---
         document.getElementById('vidInput').onchange = async (e) => uploadFile(e.target.files[0], `/api/upload/${activePlIdx}`);
         document.getElementById('coverInput').onchange = async (e) => uploadFile(e.target.files[0], `/api/cover/${activePlIdx}`);
 
         async function uploadFile(file, url) {
             if(!file) return;
+            if (!db.playlists[activePlIdx]) return alert("Please create and select a playlist first!");
+
             const fd = new FormData(); fd.append('file', file);
             document.getElementById('status').innerText = "Uploading...";
-            await fetch(url, { method:'POST', body: fd });
-            document.getElementById('status').innerText = "Done!";
-            loadData();
+            
+            const res = await fetch(url, { method:'POST', body: fd });
+            if(res.ok) {
+                document.getElementById('status').innerText = "Done!";
+                await loadData();
+            } else {
+                document.getElementById('status').innerText = "Error uploading.";
+            }
         }
     </script>
 </body>
