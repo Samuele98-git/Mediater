@@ -34,7 +34,7 @@ Follow these steps to run Mediater on your personal computer for development or 
 Open your terminal (Command Prompt, PowerShell, or Terminal) and run:
 
 ```bash
-git clone [https://github.com/YOUR_USERNAME/mediater.git](https://github.com/YOUR_USERNAME/mediater.git)
+git clone https://github.com/Samuele98-git/Mediater.git
 cd mediater
 ```
 
