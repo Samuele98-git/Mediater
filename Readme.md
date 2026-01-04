@@ -2,7 +2,7 @@
 
 **Mediater** is a self-hosted, premium media streaming server inspired by the aesthetics of popular streaming platforms. It features a sleek, responsive "Netflix-style" viewer interface and a powerful Admin Dashboard for managing content, users, and settings without touching code.
 
-![Mediater Preview](https://via.placeholder.com/800x400?text=Mediater+Interface+Preview)
+![Mediater](/imgxtx/mediater.png)
 
 ## ✨ Features
 
