@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title><%= playlist.title %></title>
+    <style>
+        body { background: #141414; color: white; font-family: sans-serif; padding: 40px; }
+        .header { display: flex; gap: 30px; margin-bottom: 40px; }
+        .cover { width: 200px; border-radius: 4px; }
+        .ep-list { display: grid; gap: 10px; }
+        .ep { background: #333; padding: 15px; border-radius: 4px; text-decoration: none; color: white; display: flex; justify-content: space-between; }
+        .ep:hover { background: #444; }
+    </style>
+</head>
+<body>
+    <a href="/" style="color:#aaa; text-decoration:none;">&larr; Back to Library</a>
+    <div class="header">
+        <img src="<%= playlist.thumbnail %>" class="cover">
+        <div>
+            <h1><%= playlist.title %></h1>
+            <p><%= playlist.category %></p>
+        </div>
+    </div>
+    <div class="ep-list">
+        <% videos.forEach((v, i) => { %>
+            <a href="/watch/<%= v.id %>" class="ep">
+                <span><%= i + 1 %>. <%= v.title %></span>
+                <span>Play &rarr;</span>
+            </a>
+        <% }) %>
+    </div>
+</body>
+</html>

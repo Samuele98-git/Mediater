@@ -1,18 +1,24 @@
 {
-  "name": "my-media-server",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "mediater-pro",
+  "version": "2.0.0",
+  "main": "server.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "express": "^5.2.1",
-    "multer": "^2.0.2",
-    "nodemon": "^3.1.11"
-  },
-  "devDependencies": {}
+    "@adminjs/express": "^6.0.0",
+    "@adminjs/sql": "^3.0.0",
+    "adminjs": "^7.0.0",
+    "better-sqlite3": "^9.0.0",
+    "bcryptjs": "^2.4.3",
+    "connect-ensure-login": "^0.1.1",
+    "dotenv": "^16.0.0",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "passport-openidconnect": "^0.1.1"
+  }
 }

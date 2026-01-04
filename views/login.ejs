@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #141414; display: flex; align-items: center; justify-content: center; height: 100vh; color: white; }
+        .box { background: rgba(0,0,0,0.8); padding: 40px; width: 400px; border-radius: 8px; }
+        .btn-red { background: #E50914; color: white; width: 100%; border: none; padding: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2 class="text-center mb-4">MEDIATER</h2>
+        
+        <% if (error) { %>
+            <div class="alert alert-danger text-center p-2"><%= error %></div>
+        <% } %>
+
+        <form action="/auth/local" method="POST">
+            <div class="mb-3">
+                <input type="text" name="username" class="form-control" placeholder="Username" required>
+            </div>
+            <div class="mb-3">
+                <input type="password" name="password" class="form-control" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn btn-red">LOGIN</button>
+        </form>
+
+        <% if (hasSso) { %>
+            <a href="/auth/sso" class="btn btn-light w-100 mt-3 fw-bold">Authentik SSO</a>
+        <% } %>
+    </div>
+</body>
+</html>

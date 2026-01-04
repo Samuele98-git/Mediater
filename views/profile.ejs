@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Profile</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --accent: <%= ACCENT_COLOR %>; }
+        body { background: #0f0f0f; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        
+        .profile-card { background: #1a1a1a; padding: 40px; border-radius: 12px; width: 400px; border: 1px solid #333; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .avatar-lg { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid var(--accent); margin-bottom: 20px; background: #000; }
+        
+        input[type="text"], input[type="password"] { width: 100%; background: #000; border: 1px solid #333; color: white; padding: 12px; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; transition: 0.3s; }
+        input:focus { border-color: var(--accent); outline: none; }
+        label { display: block; text-align: left; margin-bottom: 5px; color: #888; font-size: 0.9rem; font-weight: bold; }
+        
+        /* DRAG & DROP UPLOAD BOX */
+        .upload-box {
+            border: 2px dashed #444;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+            background: #111;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .upload-box:hover { border-color: var(--accent); background: #222; }
+        .upload-box input[type="file"] {
+            position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+        }
+        .upload-icon { font-size: 1.5rem; color: #666; margin-bottom: 8px; }
+        .file-name { color: var(--accent); font-weight: bold; display: block; margin-top: 8px; font-size: 0.85rem; word-break: break-all; }
+
+        .btn { background: var(--accent); color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1rem; }
+        .btn:hover { filter: brightness(1.1); }
+
+        .sso-info { background: #2563eb; color: white; padding: 10px; border-radius: 6px; font-size: 0.9rem; margin-bottom: 20px; text-align: left; }
+        
+        .links { margin-top: 25px; display: flex; justify-content: space-between; font-size: 0.9rem; border-top: 1px solid #333; padding-top: 20px; }
+        .links a { color: #888; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+        .links a:hover { color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="profile-card">
+        <img src="<%= user.avatar || 'https://ui-avatars.com/api/?name='+user.username %>" class="avatar-lg">
+        
+        <h2 style="margin-top:0; margin-bottom: 5px;"><%= user.username %></h2>
+        <div style="color: #666; font-size: 0.9rem; margin-bottom: 20px;"><%= user.role.toUpperCase() %></div>
+
+        <% if (user.auth_provider === 'oidc') { %>
+            <div class="sso-info">
+                <i class="fas fa-lock"></i> 
+                <strong>SSO Enabled</strong><br>
+                Password & Username are managed by your provider. You can still update your Avatar.
+            </div>
+        <% } %>
+
+        <form action="/profile/update" method="POST" enctype="multipart/form-data">
+            
+            <% if (user.auth_provider === 'local') { %>
+                <label>Username</label>
+                <input type="text" name="username" value="<%= user.username %>" required>
+            <% } %>
+
+            <label>Profile Picture</label>
+            <div class="upload-box">
+                <i class="fas fa-camera upload-icon"></i>
+                <div>Click or Drop Image Here</div>
+                <span class="file-name" id="file-name"></span>
+                <input type="file" name="avatar" accept="image/*" onchange="showName(this)">
+            </div>
+            
+            <% if (user.auth_provider === 'local') { %>
+                <label>New Password</label>
+                <input type="password" name="newPassword" placeholder="Leave blank to keep current">
+            <% } %>
+
+            <button class="btn">Save Changes</button>
+        </form>
+
+        <div class="links">
+            <a href="/"><i class="fas fa-arrow-left"></i> Back to Library</a>
+            <a href="/logout" style="color:#e74c3c;"><i class="fas fa-sign-out-alt"></i> Log Out</a>
+        </div>
+    </div>
+
+    <script>
+        function showName(input) {
+            if(input.files && input.files[0]) {
+                document.getElementById('file-name').innerText = input.files[0].name;
+            }
+        }
+    </script>
+</body>
+</html>

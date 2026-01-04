@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --accent: <%= ACCENT_COLOR %>; --bg: #0f0f0f; --surface: #1a1a1a; --border: #333; }
+        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; margin: 0; min-height: 100vh; }
+        
+        /* SIDEBAR */
+        .sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); padding: 25px; display: flex; flex-direction: column; }
+        .logo { font-size: 1.5rem; font-weight: 800; color: var(--accent); margin-bottom: 40px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .nav-item { padding: 12px 15px; color: #888; cursor: pointer; border-radius: 6px; margin-bottom: 5px; transition: 0.2s; display: flex; align-items: center; gap: 10px; }
+        .nav-item:hover { background: #333; color: white; }
+        .nav-item.active { background: #252525; color: white; border-left: 3px solid var(--accent); }
+
+        /* MAIN */
+        .main { flex: 1; padding: 40px; overflow-y: auto; }
+        .panel { display: none; }
+        .panel.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 { border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 25px; font-weight: 300; font-size: 2rem; }
+        
+        .form-card { background: var(--surface); padding: 25px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 30px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; color: #aaa; margin-bottom: 5px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
+        
+        input[type="text"], input[type="password"], input[type="number"], select { 
+            width: 100%; background: #000; border: 1px solid var(--border); color: white; padding: 12px; border-radius: 4px; box-sizing: border-box; 
+        }
+        input:focus { outline: none; border-color: var(--accent); }
+        
+        .btn { background: var(--accent); color: white; border: none; padding: 12px 25px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn:hover { filter: brightness(1.1); }
+        .btn-green { background-color: #27ae60; }
+        .btn-cancel { background-color: #444; margin-left: 10px; display: none; }
+
+        .upload-box {
+            border: 2px dashed #444; padding: 20px; text-align: center; border-radius: 8px; cursor: pointer;
+            transition: 0.3s; background: #111; position: relative; margin-bottom: 10px;
+        }
+        .upload-box:hover { border-color: var(--accent); background: #222; }
+        .upload-box input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+        .file-name { color: var(--accent); font-weight: bold; display: block; margin-top: 8px; font-size: 0.85rem; word-break: break-all; }
+
+        table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 8px; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: #222; color: #aaa; font-size: 0.85rem; text-transform: uppercase; }
+        td img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 10px; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .badge-admin { background: #E50914; color: white; }
+        .badge-viewer { background: #2ecc71; color: black; }
+        .action-btn { background: none; border: none; color: #666; cursor: pointer; margin-left: 10px; font-size: 1rem; }
+        .action-btn:hover { color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo"><%= APP_NAME %></div>
+        <div class="nav-item active" onclick="switchTab('content', this)"><i class="fas fa-film"></i> Library</div>
+        <div class="nav-item" onclick="switchTab('users', this)"><i class="fas fa-users"></i> Users</div>
+        <div class="nav-item" onclick="switchTab('settings', this)"><i class="fas fa-cogs"></i> Settings</div>
+        <div style="flex:1;"></div>
+        <a href="/" class="nav-item"><i class="fas fa-arrow-left"></i> Back to App</a>
+    </div>
+
+    <div class="main">
+        
+        <div id="content" class="panel active">
+            <h2>Add Media</h2>
+            <div class="form-card">
+                <form action="/admin/media/add" method="POST" enctype="multipart/form-data">
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>Title</label>
+                            <input type="text" name="title" placeholder="e.g. Inception" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Type</label>
+                            <select name="type">
+                                <option value="movie">Movie</option>
+                                <option value="series">Series</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Category</label>
+                        <input type="text" name="category" placeholder="Action, Drama..." required>
+                    </div>
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>Cover Image</label>
+                            <div class="upload-box">
+                                <i class="fas fa-image"></i>
+                                <div>Drop Cover Here</div>
+                                <span class="file-name" id="media-thumb-name"></span>
+                                <input type="file" name="thumbnail" accept="image/*" onchange="showFileName(this, 'media-thumb-name')">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Video File</label>
+                            <div class="upload-box">
+                                <i class="fas fa-video"></i>
+                                <div>Drop Video Here</div>
+                                <span class="file-name" id="media-video-name"></span>
+                                <input type="file" name="video" accept="video/*" onchange="showFileName(this, 'media-video-name')">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn">Add Content</button>
+                </form>
+            </div>
+
+            <% if (media.some(m => m.type === 'series')) { %>
+            <h2 style="margin-top: 40px;">Add Episodes</h2>
+            <div class="form-card">
+                <form action="/admin/episode/add" method="POST" enctype="multipart/form-data">
+                    <div class="input-group">
+                        <label>Select Series</label>
+                        <select name="parentId" required>
+                            <% media.filter(m => m.type === 'series').forEach(s => { %>
+                                <option value="<%= s.id %>"><%= s.title %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>Episode Title</label>
+                            <input type="text" name="title" placeholder="Ep Name">
+                        </div>
+                        <div class="input-group">
+                            <label>Episode Number</label>
+                            <input type="number" name="order" placeholder="1" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Episode Video File</label>
+                        <div class="upload-box">
+                            <i class="fas fa-video"></i>
+                            <div>Drop Episode Video Here</div>
+                            <span class="file-name" id="ep-video-name"></span>
+                            <input type="file" name="video" accept="video/*" onchange="showFileName(this, 'ep-video-name')" required>
+                        </div>
+                    </div>
+                    <button class="btn">Add Episode</button>
+                </form>
+            </div>
+            <% } %>
+
+            <h2 style="margin-top: 40px;">Library Content</h2>
+            <table>
+                <thead><tr><th>Title</th><th>Type</th><th>Category</th><th>Action</th></tr></thead>
+                <tbody>
+                    <% media.forEach(m => { %>
+                    <tr>
+                        <td>
+                            <img src="<%= m.thumbnail %>">
+                            <%= m.title %>
+                        </td>
+                        <td><%= m.type %></td>
+                        <td><%= m.category %></td>
+                        <td>
+                            <form action="/admin/media/delete/<%= m.id %>" method="POST" style="margin:0;">
+                                <button class="action-btn"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="users" class="panel">
+            <h2>User Management</h2>
+            
+            <div class="form-card">
+                <h4 style="margin-top:0; color:#888;" id="userFormTitle">Create New User</h4>
+                
+                <form id="userForm" action="/admin/user/add" method="POST" enctype="multipart/form-data" class="grid-2" style="align-items:start;">
+                    <input type="hidden" name="id" id="editUserId">
+
+                    <div>
+                        <div class="input-group">
+                            <label>Username</label>
+                            <input type="text" name="username" id="editUsername" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Password <span id="passHint" style="font-weight:normal; font-size:0.7em;"></span></label>
+                            <input type="password" name="password" id="editPassword" placeholder="Enter password">
+                        </div>
+                        <div class="input-group">
+                            <label>Role</label>
+                            <select name="role" id="editRole">
+                                <option value="viewer">Viewer</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label>Avatar</label>
+                        <div class="upload-box" style="height: 180px; display:flex; flex-direction:column; justify-content:center;">
+                            <i class="fas fa-user-circle"></i>
+                            <div>Upload Avatar</div>
+                            <span class="file-name" id="user-avatar-name"></span>
+                            <input type="file" name="avatar" accept="image/*" onchange="showFileName(this, 'user-avatar-name')">
+                        </div>
+                    </div>
+                    
+                    <div style="grid-column: span 2; display:flex;">
+                        <button class="btn" id="userSubmitBtn">Create User</button>
+                        <button type="button" class="btn btn-cancel" id="userCancelBtn" onclick="resetUserForm()">Cancel Edit</button>
+                    </div>
+                </form>
+            </div>
+
+            <table>
+                <thead><tr><th>User</th><th>Role</th><th>Provider</th><th>Actions</th></tr></thead>
+                <tbody>
+                    <% users.forEach(u => { %>
+                    <tr>
+                        <td>
+                            <img src="<%= u.avatar || 'https://ui-avatars.com/api/?name='+u.username %>">
+                            <%= u.username %>
+                        </td>
+                        <td><span class="badge badge-<%= u.role %>"><%= u.role %></span></td>
+                        <td><%= u.auth_provider %></td>
+                        <td>
+                            <div style="display:flex;">
+                                <button class="action-btn" onclick='editUser(<%- JSON.stringify(u) %>)'>
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                                
+                                <% if (u.username !== 'admin') { %>
+                                    <form action="/admin/user/delete/<%= u.id %>" method="POST" style="margin:0;">
+                                        <button class="action-btn" style="color:#e74c3c;"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                <% } %>
+                            </div>
+                        </td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="settings" class="panel">
+            <h2>Configuration</h2>
+            <form action="/admin/settings/update" method="POST">
+                <div class="form-card">
+                    <h3>Look & Feel</h3>
+                    <div class="grid-2">
+                        <div class="input-group"><label>App Name</label><input type="text" name="APP_NAME" value="<%= config.APP_NAME || 'MEDIATER' %>"></div>
+                        <div class="input-group"><label>Accent Color</label><input type="color" name="ACCENT_COLOR" value="<%= config.ACCENT_COLOR || '#E50914' %>" style="height:45px; padding:2px;"></div>
+                    </div>
+                </div>
+                <div class="form-card">
+                    <h3>SSO (Authentik / Keycloak)</h3>
+                    <div class="grid-2">
+                        <div class="input-group"><label>Client ID</label><input type="text" name="OIDC_CLIENT_ID" value="<%= config.OIDC_CLIENT_ID || '' %>"></div>
+                        <div class="input-group"><label>Client Secret</label><input type="password" name="OIDC_CLIENT_SECRET" value="<%= config.OIDC_CLIENT_SECRET || '' %>"></div>
+                    </div>
+                    <div class="input-group"><label>Issuer URL</label><input type="text" name="OIDC_ISSUER" value="<%= config.OIDC_ISSUER || '' %>"></div>
+                    <div class="input-group"><label>Auth URL</label><input type="text" name="OIDC_AUTH_URL" value="<%= config.OIDC_AUTH_URL || '' %>"></div>
+                    <div class="input-group"><label>Token URL</label><input type="text" name="OIDC_TOKEN_URL" value="<%= config.OIDC_TOKEN_URL || '' %>"></div>
+                    <div class="input-group"><label>User Info URL</label><input type="text" name="OIDC_USERINFO_URL" value="<%= config.OIDC_USERINFO_URL || '' %>"></div>
+                </div>
+                <button class="btn">Save & Apply</button>
+            </form>
+        </div>
+
+    </div>
+
+    <script>
+        function switchTab(tabId, navElement) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            if(navElement) navElement.classList.add('active');
+        }
+
+        function showFileName(input, spanId) {
+            if (input.files && input.files[0]) {
+                document.getElementById(spanId).innerText = input.files[0].name;
+                document.getElementById(spanId).style.color = "<%= ACCENT_COLOR %>";
+            }
+        }
+
+        // --- EDIT USER LOGIC ---
+        function editUser(user) {
+            // 1. Scroll to form
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // 2. Change Action to Edit
+            const form = document.getElementById('userForm');
+            form.action = '/admin/user/edit';
+            
+            // 3. Populate Fields
+            document.getElementById('editUserId').value = user.id;
+            document.getElementById('editUsername').value = user.username;
+            document.getElementById('editRole').value = user.role;
+            
+            // 4. Update UI to "Edit Mode"
+            document.getElementById('userFormTitle').innerText = "Edit User: " + user.username;
+            document.getElementById('editPassword').placeholder = "Leave empty to keep current password";
+            document.getElementById('editPassword').required = false; // Not required on edit
+            document.getElementById('passHint').innerText = "(Optional)";
+            
+            const btn = document.getElementById('userSubmitBtn');
+            btn.innerText = "Update User";
+            btn.classList.add('btn-green');
+            
+            document.getElementById('userCancelBtn').style.display = 'inline-block';
+        }
+
+        function resetUserForm() {
+            const form = document.getElementById('userForm');
+            form.action = '/admin/user/add';
+            form.reset();
+            
+            document.getElementById('editUserId').value = '';
+            document.getElementById('userFormTitle').innerText = "Create New User";
+            document.getElementById('editPassword').placeholder = "Enter password";
+            document.getElementById('editPassword').required = true;
+            document.getElementById('passHint').innerText = "";
+            
+            const btn = document.getElementById('userSubmitBtn');
+            btn.innerText = "Create User";
+            btn.classList.remove('btn-green');
+            
+            document.getElementById('userCancelBtn').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

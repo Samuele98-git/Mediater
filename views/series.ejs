@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title><%= series.title %></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #141414; color: white; font-family: sans-serif; padding: 40px; margin: 0; }
+        .header { display: flex; gap: 30px; margin-bottom: 40px; }
+        .poster { height: 350px; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .ep-list { display: grid; gap: 10px; }
+        .ep { background: #222; padding: 20px; border-radius: 6px; text-decoration: none; color: white; display: flex; align-items: center; justify-content: space-between; transition: 0.2s; }
+        .ep:hover { background: #333; transform: translateX(10px); }
+        .back { color: #888; text-decoration: none; display: block; margin-bottom: 20px; }
+        .back:hover { color: white; }
+    </style>
+</head>
+<body>
+    <a href="/" class="back"><i class="fas fa-arrow-left"></i> Back to Library</a>
+    <div class="header">
+        <img src="<%= series.thumbnail %>" class="poster">
+        <div>
+            <h1 style="font-size: 3rem; margin-top: 0;"><%= series.title %></h1>
+            <p style="color:#aaa; font-size:1.2rem;"><%= series.category %></p>
+        </div>
+    </div>
+    
+    <h2>Episodes</h2>
+    <div class="ep-list">
+        <% if (episodes.length === 0) { %>
+            <p style="color:#666;">No episodes available.</p>
+        <% } %>
+        <% episodes.forEach(ep => { %>
+            <a href="/watch/<%= ep.id %>" class="ep">
+                <div style="display:flex; align-items:center; gap:20px;">
+                    <span style="font-size:1.5rem; color:#555; font-weight:bold;"><%= ep.order %></span>
+                    <span style="font-size:1.1rem;"><%= ep.title || 'Episode ' + ep.order %></span>
+                </div>
+                <i class="fas fa-play-circle" style="font-size:1.5rem;"></i>
+            </a>
+        <% }) %>
+    </div>
+</body>
+</html>
