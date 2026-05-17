@@ -1,15 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= lang %>">
 <head>
     <meta charset="UTF-8">
-    <title>Admin - <%= APP_NAME %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title><%= t('nav.manage') %> - <%= APP_NAME %></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/netflix.css">
     <style>
         body { display: flex; min-height: 100vh; }
         :root { --surface: #181818; --border: #2a2a2a; }
 
-        .sidebar { width: 260px; background: #0a0a0a; border-right: 1px solid var(--border); padding: 25px 18px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; }
+        .sidebar { width: 260px; background: #0a0a0a; border-right: 1px solid var(--border); padding: 25px 18px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; flex-shrink: 0; }
         .sidebar .nf-logo { margin-bottom: 28px; }
         .nav-item {
             padding: 12px 14px; color: #b3b3b3; cursor: pointer;
@@ -19,7 +20,29 @@
         .nav-item:hover { background: #232323; color: white; }
         .nav-item.active { background: rgba(229,9,20,0.15); color: white; border-left: 3px solid var(--nf-red); }
 
-        .main { flex: 1; padding: 36px 40px; overflow-y: auto; }
+        .mobile-topbar {
+            display: none; position: sticky; top: 0; z-index: 50;
+            background: #0a0a0a; border-bottom: 1px solid var(--border);
+            padding: 12px 14px calc(12px + env(safe-area-inset-top, 0));
+            align-items: center; gap: 12px;
+        }
+        .mobile-topbar .nf-logo { font-size: 22px; margin: 0; }
+        .mobile-tabs {
+            display: none; position: sticky; top: 56px; z-index: 49;
+            background: #141414; border-bottom: 1px solid var(--border);
+            overflow-x: auto; gap: 0; -webkit-overflow-scrolling: touch;
+        }
+        .mobile-tabs::-webkit-scrollbar { display: none; }
+        .mobile-tabs .tab {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 14px 18px; font-size: 14px; color: #b3b3b3;
+            border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap;
+            background: none; border-left: 0; border-right: 0; border-top: 0;
+            font-family: inherit;
+        }
+        .mobile-tabs .tab.active { color: white; border-bottom-color: var(--nf-red); }
+
+        .main { flex: 1; min-width: 0; padding: 36px 40px; overflow-y: auto; }
         .panel { display: none; }
         .panel.active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -80,106 +103,136 @@
         .action-btn.danger:hover { color: #ff5b5b; }
 
         @media (max-width: 900px) {
-            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            body { display: block; }
             .sidebar { display: none; }
-            .main { padding: 20px; }
+            .mobile-topbar { display: flex; }
+            .mobile-tabs { display: flex; }
+            .main { padding: 18px 14px 60px; }
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .card { padding: 16px; }
+            h2 { font-size: 1.3rem; padding-bottom: 10px; margin-bottom: 16px; }
+            input, select, textarea { font-size: 16px; /* prevent iOS zoom */ padding: 12px; }
+            .nf-btn { width: 100%; justify-content: center; }
+            table { font-size: 13px; }
+            th, td { padding: 8px 10px; }
+            td img.row-thumb { width: 50px; height: 28px; }
+            td img.row-avatar { width: 26px; height: 26px; }
+        }
+        @media (max-width: 500px) {
+            .mobile-topbar a.back-link { display: none; }
+            table thead { display: none; }
+            table tr { display: block; padding: 12px 0; border-bottom: 1px solid var(--border); }
+            table td { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border: 0; gap: 12px; }
+            table td:first-child { font-weight: 600; }
+            table td::before { content: attr(data-label); color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+            table td:first-child::before { display: none; }
         }
     </style>
 </head>
 <body>
 
+    <header class="mobile-topbar">
+        <a href="/" class="nf-logo" style="text-decoration:none;"><%= APP_NAME %></a>
+        <a href="/" class="back-link" style="margin-left:auto; color:#b3b3b3; font-size:14px;"><i class="fas fa-arrow-left"></i> <%= t('admin.back_to_browse') %></a>
+    </header>
+    <nav class="mobile-tabs">
+        <button type="button" class="tab active" data-target="library" onclick="switchTab('library', this)"><i class="fas fa-film"></i> <%= t('admin.library') %></button>
+        <button type="button" class="tab" data-target="users" onclick="switchTab('users', this)"><i class="fas fa-users"></i> <%= t('admin.users') %></button>
+        <button type="button" class="tab" data-target="settings" onclick="switchTab('settings', this)"><i class="fas fa-cogs"></i> <%= t('admin.settings') %></button>
+    </nav>
+
     <aside class="sidebar">
         <a href="/" class="nf-logo" style="text-decoration:none;"><%= APP_NAME %></a>
-        <div class="nav-item active" onclick="switchTab('library', this)"><i class="fas fa-film"></i> Library</div>
-        <div class="nav-item" onclick="switchTab('users', this)"><i class="fas fa-users"></i> Users</div>
-        <div class="nav-item" onclick="switchTab('settings', this)"><i class="fas fa-cogs"></i> Settings</div>
+        <div class="nav-item active" onclick="switchTab('library', this)"><i class="fas fa-film"></i> <%= t('admin.library') %></div>
+        <div class="nav-item" onclick="switchTab('users', this)"><i class="fas fa-users"></i> <%= t('admin.users') %></div>
+        <div class="nav-item" onclick="switchTab('settings', this)"><i class="fas fa-cogs"></i> <%= t('admin.settings') %></div>
         <div style="flex:1;"></div>
-        <a href="/" class="nav-item"><i class="fas fa-arrow-left"></i> Back to Browse</a>
+        <a href="/" class="nav-item"><i class="fas fa-arrow-left"></i> <%= t('admin.back_to_browse') %></a>
     </aside>
 
     <main class="main">
         <div id="library" class="panel active">
-            <h2>Library</h2>
+            <h2><%= t('admin.library') %></h2>
 
             <div class="card">
-                <h3>Add Movie or Series</h3>
+                <h3><%= t('admin.add_media') %></h3>
                 <form action="/admin/media/add" method="POST" enctype="multipart/form-data">
                     <div class="grid-2">
                         <div class="field">
-                            <label>Title</label>
+                            <label><%= t('admin.title_field') %></label>
                             <input type="text" name="title" required>
                         </div>
                         <div class="field">
-                            <label>Type</label>
+                            <label><%= t('admin.type') %></label>
                             <select name="type">
-                                <option value="movie">Movie</option>
-                                <option value="series">Series</option>
+                                <option value="movie"><%= t('admin.movie') %></option>
+                                <option value="series"><%= t('admin.series') %></option>
                             </select>
                         </div>
                     </div>
 
                     <div class="field">
-                        <label>Description</label>
-                        <textarea name="description" placeholder="A brief synopsis…"></textarea>
+                        <label><%= t('admin.description') %></label>
+                        <textarea name="description" placeholder="<%= t('admin.description_placeholder') %>"></textarea>
                     </div>
 
                     <div class="grid-4">
                         <div class="field">
-                            <label>Category / Row</label>
-                            <input type="text" name="category" placeholder="Action, Drama…" required>
+                            <label><%= t('admin.category') %></label>
+                            <input type="text" name="category" placeholder="<%= t('admin.category_placeholder') %>" required>
                         </div>
                         <div class="field">
-                            <label>Year</label>
+                            <label><%= t('admin.year') %></label>
                             <input type="number" name="releaseYear" placeholder="2025">
                         </div>
                         <div class="field">
-                            <label>Duration (min)</label>
+                            <label><%= t('admin.duration_min') %></label>
                             <input type="number" name="duration" placeholder="120">
                         </div>
                         <div class="field">
-                            <label>Maturity</label>
-                            <input type="text" name="maturity" placeholder="TV-MA / PG-13">
+                            <label><%= t('admin.maturity') %></label>
+                            <input type="text" name="maturity" placeholder="<%= t('admin.maturity_placeholder') %>">
                         </div>
                     </div>
 
                     <div class="field">
-                        <label>Genres (comma-separated)</label>
-                        <input type="text" name="genres" placeholder="Action, Thriller, Sci-Fi">
+                        <label><%= t('admin.genres') %></label>
+                        <input type="text" name="genres" placeholder="<%= t('admin.genres_placeholder') %>">
                     </div>
 
                     <div class="grid-4">
                         <div class="field">
-                            <label>Cover (Poster 16:9)</label>
+                            <label><%= t('admin.cover') %></label>
                             <div class="upload-box">
                                 <i class="fas fa-image"></i>
-                                Drop cover
+                                <%= t('admin.drop_cover') %>
                                 <span class="file-name" id="thumbN"></span>
                                 <input type="file" name="thumbnail" accept="image/*" onchange="showFn(this,'thumbN')">
                             </div>
                         </div>
                         <div class="field">
-                            <label>Backdrop (Hero)</label>
+                            <label><%= t('admin.backdrop') %></label>
                             <div class="upload-box">
                                 <i class="fas fa-images"></i>
-                                Drop backdrop
+                                <%= t('admin.drop_backdrop') %>
                                 <span class="file-name" id="backN"></span>
                                 <input type="file" name="backdrop" accept="image/*" onchange="showFn(this,'backN')">
                             </div>
                         </div>
                         <div class="field">
-                            <label>Logo (PNG)</label>
+                            <label><%= t('admin.logo') %></label>
                             <div class="upload-box">
                                 <i class="fas fa-tag"></i>
-                                Drop logo
+                                <%= t('admin.drop_logo') %>
                                 <span class="file-name" id="logoN"></span>
                                 <input type="file" name="logo" accept="image/*" onchange="showFn(this,'logoN')">
                             </div>
                         </div>
                         <div class="field">
-                            <label>Video File</label>
+                            <label><%= t('admin.video_file') %></label>
                             <div class="upload-box">
                                 <i class="fas fa-video"></i>
-                                Drop video
+                                <%= t('admin.drop_video') %>
                                 <span class="file-name" id="vidN"></span>
                                 <input type="file" name="video" accept="video/*" onchange="showFn(this,'vidN')">
                             </div>
@@ -188,20 +241,20 @@
 
                     <div class="checkbox-row">
                         <input type="checkbox" id="trending" name="trending">
-                        <label for="trending">Show in Trending Now row</label>
+                        <label for="trending"><%= t('admin.show_trending') %></label>
                     </div>
 
-                    <button class="nf-btn" type="submit"><i class="fas fa-plus"></i> Add Content</button>
+                    <button class="nf-btn" type="submit"><i class="fas fa-plus"></i> <%= t('admin.add_content') %></button>
                 </form>
             </div>
 
             <% if (media.some(m => m.type === 'series')) { %>
                 <div class="card">
-                    <h3>Add Episode</h3>
+                    <h3><%= t('admin.add_episode') %></h3>
                     <form action="/admin/episode/add" method="POST" enctype="multipart/form-data">
                         <div class="grid-2">
                             <div class="field">
-                                <label>Series</label>
+                                <label><%= t('admin.series_field') %></label>
                                 <select name="parentId" required>
                                     <% media.filter(m => m.type === 'series').forEach(s => { %>
                                         <option value="<%= s.id %>"><%= s.title %></option>
@@ -209,73 +262,73 @@
                                 </select>
                             </div>
                             <div class="field">
-                                <label>Episode #</label>
+                                <label><%= t('admin.episode_number') %></label>
                                 <input type="number" name="order" placeholder="1" required>
                             </div>
                         </div>
 
                         <div class="grid-2">
                             <div class="field">
-                                <label>Episode Title</label>
+                                <label><%= t('admin.episode_title') %></label>
                                 <input type="text" name="title">
                             </div>
                             <div class="field">
-                                <label>Duration (min)</label>
+                                <label><%= t('admin.duration_min') %></label>
                                 <input type="number" name="duration" placeholder="45">
                             </div>
                         </div>
 
                         <div class="field">
-                            <label>Episode Description</label>
+                            <label><%= t('admin.episode_description') %></label>
                             <textarea name="description"></textarea>
                         </div>
 
                         <div class="grid-2">
                             <div class="field">
-                                <label>Episode Still</label>
+                                <label><%= t('admin.episode_still') %></label>
                                 <div class="upload-box">
                                     <i class="fas fa-image"></i>
-                                    Drop image
+                                    <%= t('admin.drop_image') %>
                                     <span class="file-name" id="epThumbN"></span>
                                     <input type="file" name="thumbnail" accept="image/*" onchange="showFn(this,'epThumbN')">
                                 </div>
                             </div>
                             <div class="field">
-                                <label>Episode Video</label>
+                                <label><%= t('admin.episode_video') %></label>
                                 <div class="upload-box">
                                     <i class="fas fa-video"></i>
-                                    Drop video
+                                    <%= t('admin.drop_video') %>
                                     <span class="file-name" id="epVidN"></span>
                                     <input type="file" name="video" accept="video/*" onchange="showFn(this,'epVidN')" required>
                                 </div>
                             </div>
                         </div>
 
-                        <button class="nf-btn" type="submit"><i class="fas fa-plus"></i> Add Episode</button>
+                        <button class="nf-btn" type="submit"><i class="fas fa-plus"></i> <%= t('admin.add_episode') %></button>
                     </form>
                 </div>
             <% } %>
 
             <div class="card">
-                <h3>Content (<%= media.length %>)</h3>
+                <h3><%= t('admin.content_total') %> (<%= media.length %>)</h3>
                 <table>
                     <thead>
-                        <tr><th>Title</th><th>Type</th><th>Category</th><th>Year</th><th>Trending</th><th></th></tr>
+                        <tr><th><%= t('admin.title_field') %></th><th><%= t('admin.type') %></th><th><%= t('admin.category_col') %></th><th><%= t('admin.year_col') %></th><th><%= t('admin.trending_col') %></th><th></th></tr>
                     </thead>
                     <tbody>
                         <% media.forEach(m => { %>
                             <tr>
-                                <td>
+                                <td data-label="<%= t('admin.title_field') %>">
                                     <% if (m.thumbnail) { %><img src="<%= m.thumbnail %>" class="row-thumb"><% } %>
                                     <%= m.title %>
                                 </td>
-                                <td><span class="badge badge-type"><%= m.type %></span></td>
-                                <td><%= m.category %></td>
-                                <td><%= m.releaseYear || '—' %></td>
-                                <td><%= m.trending ? '⭐' : '—' %></td>
-                                <td style="text-align:right;">
-                                    <form action="/admin/media/delete/<%= m.id %>" method="POST" style="display:inline;" onsubmit="return confirm('Delete this and its episodes?')">
-                                        <button class="action-btn danger" title="Delete"><i class="fas fa-trash"></i></button>
+                                <td data-label="<%= t('admin.type') %>"><span class="badge badge-type"><%= m.type %></span></td>
+                                <td data-label="<%= t('admin.category_col') %>"><%= m.category %></td>
+                                <td data-label="<%= t('admin.year_col') %>"><%= m.releaseYear || '—' %></td>
+                                <td data-label="<%= t('admin.trending_col') %>"><%= m.trending ? '⭐' : '—' %></td>
+                                <td data-label="" style="text-align:right;">
+                                    <form action="/admin/media/delete/<%= m.id %>" method="POST" style="display:inline;" onsubmit="return confirm('<%- t('admin.delete_confirm').replace(/'/g, "\\'") %>')">
+                                        <button class="action-btn danger" title="<%= t('admin.delete') %>"><i class="fas fa-trash"></i></button>
                                     </form>
                                 </td>
                             </tr>
@@ -286,60 +339,60 @@
         </div>
 
         <div id="users" class="panel">
-            <h2>Users</h2>
+            <h2><%= t('admin.users') %></h2>
             <div class="card">
-                <h3 id="userFormTitle">Create New User</h3>
+                <h3 id="userFormTitle"><%= t('admin.create_new_user') %></h3>
                 <form id="userForm" action="/admin/user/add" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="id" id="editUserId">
                     <div class="grid-3">
                         <div class="field">
-                            <label>Username</label>
+                            <label><%= t('admin.username') %></label>
                             <input type="text" name="username" id="editUsername" required>
                         </div>
                         <div class="field">
-                            <label>Password <span id="passHint" style="text-transform:none; font-size:11px; color:#888;"></span></label>
-                            <input type="password" name="password" id="editPassword" placeholder="Enter password">
+                            <label><%= t('admin.password') %> <span id="passHint" style="text-transform:none; font-size:11px; color:#888;"></span></label>
+                            <input type="password" name="password" id="editPassword" placeholder="<%= t('admin.password_enter') %>">
                         </div>
                         <div class="field">
-                            <label>Role</label>
+                            <label><%= t('admin.role') %></label>
                             <select name="role" id="editRole">
-                                <option value="viewer">Viewer</option>
-                                <option value="admin">Admin</option>
+                                <option value="viewer"><%= t('admin.viewer') %></option>
+                                <option value="admin"><%= t('admin.admin_role') %></option>
                             </select>
                         </div>
                     </div>
                     <div class="field">
-                        <label>Avatar</label>
+                        <label><%= t('admin.avatar') %></label>
                         <div class="upload-box">
                             <i class="fas fa-user-circle"></i>
-                            Drop avatar
+                            <%= t('admin.drop_avatar') %>
                             <span class="file-name" id="userAvN"></span>
                             <input type="file" name="avatar" accept="image/*" onchange="showFn(this,'userAvN')">
                         </div>
                     </div>
-                    <button class="nf-btn" id="userSubmitBtn" type="submit"><i class="fas fa-plus"></i> Create User</button>
-                    <button type="button" class="nf-btn btn-secondary" id="userCancelBtn" style="display:none;" onclick="resetUserForm()">Cancel</button>
+                    <button class="nf-btn" id="userSubmitBtn" type="submit"><i class="fas fa-plus"></i> <%= t('admin.create_user') %></button>
+                    <button type="button" class="nf-btn btn-secondary" id="userCancelBtn" style="display:none;" onclick="resetUserForm()"><%= t('admin.cancel') %></button>
                 </form>
             </div>
 
             <div class="card">
-                <h3>Users (<%= users.length %>)</h3>
+                <h3><%= t('admin.users_total') %> (<%= users.length %>)</h3>
                 <table>
-                    <thead><tr><th>User</th><th>Role</th><th>Provider</th><th></th></tr></thead>
+                    <thead><tr><th><%= t('admin.user') %></th><th><%= t('admin.role') %></th><th><%= t('admin.provider') %></th><th></th></tr></thead>
                     <tbody>
                         <% users.forEach(u => { %>
                             <tr>
-                                <td>
+                                <td data-label="<%= t('admin.user') %>">
                                     <img src="<%= u.avatar || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(u.username)) %>" class="row-avatar">
                                     <%= u.username %>
                                 </td>
-                                <td><span class="badge badge-<%= u.role %>"><%= u.role %></span></td>
-                                <td><%= u.auth_provider %></td>
-                                <td style="text-align:right;">
-                                    <button class="action-btn" onclick='editUser(<%- JSON.stringify(u) %>)' title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                                <td data-label="<%= t('admin.role') %>"><span class="badge badge-<%= u.role %>"><%= u.role === 'admin' ? t('admin.admin_role') : t('admin.viewer') %></span></td>
+                                <td data-label="<%= t('admin.provider') %>"><%= u.auth_provider %></td>
+                                <td data-label="" style="text-align:right;">
+                                    <button class="action-btn" onclick='editUser(<%- JSON.stringify(u) %>)' title="<%= t('admin.edit') %>"><i class="fas fa-pencil-alt"></i></button>
                                     <% if (u.username !== 'admin') { %>
-                                        <form action="/admin/user/delete/<%= u.id %>" method="POST" style="display:inline;" onsubmit="return confirm('Delete this user?')">
-                                            <button class="action-btn danger" title="Delete"><i class="fas fa-trash"></i></button>
+                                        <form action="/admin/user/delete/<%= u.id %>" method="POST" style="display:inline;" onsubmit="return confirm('<%- t('admin.delete_user_confirm').replace(/'/g, "\\'") %>')">
+                                            <button class="action-btn danger" title="<%= t('admin.delete') %>"><i class="fas fa-trash"></i></button>
                                         </form>
                                     <% } %>
                                 </td>
@@ -351,38 +404,62 @@
         </div>
 
         <div id="settings" class="panel">
-            <h2>Settings</h2>
+            <h2><%= t('admin.settings') %></h2>
             <form action="/admin/settings/update" method="POST">
                 <div class="card">
-                    <h3>Branding</h3>
-                    <div class="grid-2">
-                        <div class="field"><label>App Name</label><input type="text" name="APP_NAME" value="<%= config.APP_NAME || 'MEDIATER' %>"></div>
-                        <div class="field"><label>Accent Color</label><input type="color" name="ACCENT_COLOR" value="<%= config.ACCENT_COLOR || '#E50914' %>" style="height:42px; padding:4px;"></div>
+                    <h3><%= t('admin.branding') %></h3>
+                    <div class="grid-3">
+                        <div class="field"><label><%= t('admin.app_name') %></label><input type="text" name="APP_NAME" value="<%= config.APP_NAME || 'MEDIATER' %>"></div>
+                        <div class="field"><label><%= t('admin.accent_color') %></label><input type="color" name="ACCENT_COLOR" value="<%= config.ACCENT_COLOR || '#E50914' %>" style="height:42px; padding:4px;"></div>
+                        <div class="field">
+                            <label><%= t('admin.language') %></label>
+                            <select name="LANGUAGE">
+                                <% Object.entries(langLabels).forEach(([code, label]) => { %>
+                                    <option value="<%= code %>" <%= (config.LANGUAGE || 'en') === code ? 'selected' : '' %>><%= label %></option>
+                                <% }) %>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="card">
-                    <h3>Single Sign-On (OIDC / Authentik / Keycloak)</h3>
+                    <h3><%= t('admin.sso_title') %></h3>
                     <div class="grid-2">
-                        <div class="field"><label>Client ID</label><input type="text" name="OIDC_CLIENT_ID" value="<%= config.OIDC_CLIENT_ID || '' %>"></div>
-                        <div class="field"><label>Client Secret</label><input type="password" name="OIDC_CLIENT_SECRET" value="<%= config.OIDC_CLIENT_SECRET || '' %>"></div>
+                        <div class="field"><label><%= t('admin.client_id') %></label><input type="text" name="OIDC_CLIENT_ID" value="<%= config.OIDC_CLIENT_ID || '' %>"></div>
+                        <div class="field"><label><%= t('admin.client_secret') %></label><input type="password" name="OIDC_CLIENT_SECRET" value="<%= config.OIDC_CLIENT_SECRET || '' %>"></div>
                     </div>
-                    <div class="field"><label>Issuer URL</label><input type="text" name="OIDC_ISSUER" value="<%= config.OIDC_ISSUER || '' %>"></div>
+                    <div class="field"><label><%= t('admin.issuer_url') %></label><input type="text" name="OIDC_ISSUER" value="<%= config.OIDC_ISSUER || '' %>"></div>
                     <div class="grid-2">
-                        <div class="field"><label>Auth URL</label><input type="text" name="OIDC_AUTH_URL" value="<%= config.OIDC_AUTH_URL || '' %>"></div>
-                        <div class="field"><label>Token URL</label><input type="text" name="OIDC_TOKEN_URL" value="<%= config.OIDC_TOKEN_URL || '' %>"></div>
+                        <div class="field"><label><%= t('admin.auth_url') %></label><input type="text" name="OIDC_AUTH_URL" value="<%= config.OIDC_AUTH_URL || '' %>"></div>
+                        <div class="field"><label><%= t('admin.token_url') %></label><input type="text" name="OIDC_TOKEN_URL" value="<%= config.OIDC_TOKEN_URL || '' %>"></div>
                     </div>
-                    <div class="field"><label>User Info URL</label><input type="text" name="OIDC_USERINFO_URL" value="<%= config.OIDC_USERINFO_URL || '' %>"></div>
+                    <div class="field"><label><%= t('admin.userinfo_url') %></label><input type="text" name="OIDC_USERINFO_URL" value="<%= config.OIDC_USERINFO_URL || '' %>"></div>
                 </div>
-                <button class="nf-btn" type="submit"><i class="fas fa-save"></i> Save & Apply</button>
+                <button class="nf-btn" type="submit"><i class="fas fa-save"></i> <%= t('admin.save_apply') %></button>
             </form>
         </div>
     </main>
 
     <script>
+        const __T = <%- JSON.stringify({
+            create_new_user: t('admin.create_new_user'),
+            edit_user: t('admin.edit_user'),
+            password_enter: t('admin.password_enter'),
+            password_keep: t('admin.password_keep'),
+            password_optional: t('admin.password_optional'),
+            create_user: t('admin.create_user'),
+            update_user: t('admin.update_user')
+        }) %>;
         function switchTab(id, el) {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.nav-item, .mobile-tabs .tab').forEach(n => n.classList.remove('active'));
             document.getElementById(id).classList.add('active');
+            // Sync both sidebars (desktop nav-item and mobile tab) by id
+            document.querySelectorAll('.nav-item').forEach(n => {
+                if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) n.classList.add('active');
+            });
+            document.querySelectorAll('.mobile-tabs .tab').forEach(t => {
+                if (t.dataset.target === id) t.classList.add('active');
+            });
             if (el) el.classList.add('active');
         }
         function showFn(input, span) {
@@ -396,11 +473,11 @@
             document.getElementById('editUserId').value = user.id;
             document.getElementById('editUsername').value = user.username;
             document.getElementById('editRole').value = user.role;
-            document.getElementById('userFormTitle').innerText = "Edit User: " + user.username;
-            document.getElementById('editPassword').placeholder = "Leave empty to keep current";
+            document.getElementById('userFormTitle').innerText = __T.edit_user + ": " + user.username;
+            document.getElementById('editPassword').placeholder = __T.password_keep;
             document.getElementById('editPassword').required = false;
-            document.getElementById('passHint').innerText = "(optional)";
-            document.getElementById('userSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Update User';
+            document.getElementById('passHint').innerText = __T.password_optional;
+            document.getElementById('userSubmitBtn').innerHTML = '<i class="fas fa-save"></i> ' + __T.update_user;
             document.getElementById('userCancelBtn').style.display = 'inline-flex';
         }
         function resetUserForm() {
@@ -408,11 +485,11 @@
             form.action = '/admin/user/add';
             form.reset();
             document.getElementById('editUserId').value = '';
-            document.getElementById('userFormTitle').innerText = "Create New User";
-            document.getElementById('editPassword').placeholder = "Enter password";
+            document.getElementById('userFormTitle').innerText = __T.create_new_user;
+            document.getElementById('editPassword').placeholder = __T.password_enter;
             document.getElementById('editPassword').required = true;
             document.getElementById('passHint').innerText = "";
-            document.getElementById('userSubmitBtn').innerHTML = '<i class="fas fa-plus"></i> Create User';
+            document.getElementById('userSubmitBtn').innerHTML = '<i class="fas fa-plus"></i> ' + __T.create_user;
             document.getElementById('userCancelBtn').style.display = 'none';
         }
     </script>

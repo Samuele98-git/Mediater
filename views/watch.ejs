@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= lang %>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><%= media.title %> - <%= APP_NAME %></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -157,10 +157,31 @@
         }
         .next-up .btn.secondary { background: rgba(109,109,110,0.7); color: white; }
 
+        /* On mobile the player is always-show by default after first tap */
+        .player.show-controls-mobile .top-bar,
+        .player.show-controls-mobile .controls { opacity: 1; pointer-events: auto; }
+
         @media (max-width: 700px) {
-            .top-bar, .controls { padding-left: 16px; padding-right: 16px; }
+            .top-bar { padding: calc(16px + env(safe-area-inset-top, 0)) 16px 14px; }
+            .top-bar .back { font-size: 22px; min-width: 44px; min-height: 44px; }
+            .top-bar .title-info { font-size: 1rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .top-bar .title-info small { font-size: 0.75rem; }
+            .controls { padding: 16px 16px calc(20px + env(safe-area-inset-bottom, 0)); }
+            .controls-row { gap: 6px; }
+            .ctrl-btn { font-size: 22px; padding: 10px; min-width: 44px; min-height: 44px; }
+            .vol-wrap .vol-slider { display: none; }
+            .vol-wrap:hover .vol-slider { width: 0; opacity: 0; }
+            .time { font-size: 12px; min-width: auto; }
             .title-center { display: none; }
-            .next-up { right: 12px; left: 12px; width: auto; }
+            .next-up { right: 12px; left: 12px; width: auto; bottom: 90px; padding: 14px; }
+            .next-up .title { font-size: 0.95rem; }
+            .center-overlay i { font-size: 64px; }
+            .skip-anim { width: 90px; height: 90px; }
+            .skip-anim.left { left: 8%; }
+            .skip-anim.right { right: 8%; }
+            .progress-bar { height: 6px; }
+            .progress-bar .knob { opacity: 1; width: 16px; height: 16px; }
+            .player { cursor: default; }
         }
     </style>
 </head>
@@ -172,13 +193,13 @@
         </video>
 
         <div class="top-bar">
-            <a href="<%= (media.type === 'episode' && parent) ? '/watch/' + parent.id : '/' %>" class="back" title="Back">
+            <a href="<%= (media.type === 'episode' && parent) ? '/watch/' + parent.id : '/' %>" class="back" title="<%= t('player.back') %>">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <div class="title-info">
                 <%= media.title %>
                 <% if (media.type === 'episode' && parent) { %>
-                    <small><%= parent.title %> · Episode <%= media.order %></small>
+                    <small><%= parent.title %> · <%= t('player.episode') %> <%= media.order %></small>
                 <% } %>
             </div>
         </div>
@@ -190,11 +211,11 @@
 
         <% if (nextEpisode) { %>
         <div class="next-up" id="nextUp">
-            <h4>Next Episode</h4>
-            <div class="title"><%= nextEpisode.title || 'Episode ' + nextEpisode.order %></div>
+            <h4><%= t('player.next_episode') %></h4>
+            <div class="title"><%= nextEpisode.title || (t('player.episode') + ' ' + nextEpisode.order) %></div>
             <div class="actions">
-                <a class="btn" href="/watch/<%= nextEpisode.id %>"><i class="fas fa-play"></i> Play Next</a>
-                <button class="btn secondary" onclick="document.getElementById('nextUp').classList.remove('show')">Dismiss</button>
+                <a class="btn" href="/watch/<%= nextEpisode.id %>"><i class="fas fa-play"></i> <%= t('player.play_next') %></a>
+                <button class="btn secondary" onclick="document.getElementById('nextUp').classList.remove('show')"><%= t('player.dismiss') %></button>
             </div>
         </div>
         <% } %>
@@ -208,12 +229,12 @@
             </div>
 
             <div class="controls-row">
-                <button class="ctrl-btn" id="btnPlay" title="Play (k / space)"><i class="fas fa-play"></i></button>
-                <button class="ctrl-btn" id="btnBack10" title="Back 10s (j)"><i class="fas fa-rotate-left"></i></button>
-                <button class="ctrl-btn" id="btnFwd10" title="Forward 10s (l)"><i class="fas fa-rotate-right"></i></button>
+                <button class="ctrl-btn" id="btnPlay" title="<%= t('player.play') %> (k / space)"><i class="fas fa-play"></i></button>
+                <button class="ctrl-btn" id="btnBack10" title="<%= t('player.back_10') %> (j)"><i class="fas fa-rotate-left"></i></button>
+                <button class="ctrl-btn" id="btnFwd10" title="<%= t('player.forward_10') %> (l)"><i class="fas fa-rotate-right"></i></button>
 
                 <div class="vol-wrap">
-                    <button class="ctrl-btn" id="btnMute" title="Mute (m)"><i class="fas fa-volume-high"></i></button>
+                    <button class="ctrl-btn" id="btnMute" title="<%= t('player.mute') %> (m)"><i class="fas fa-volume-high"></i></button>
                     <input type="range" min="0" max="1" step="0.01" value="1" class="vol-slider" id="vol">
                 </div>
 
@@ -224,10 +245,10 @@
                 <div class="spacer"></div>
 
                 <% if (nextEpisode) { %>
-                    <button class="ctrl-btn" title="Next Episode" onclick="location.href='/watch/<%= nextEpisode.id %>'"><i class="fas fa-forward-step"></i></button>
+                    <button class="ctrl-btn" title="<%= t('player.next_episode') %>" onclick="location.href='/watch/<%= nextEpisode.id %>'"><i class="fas fa-forward-step"></i></button>
                 <% } %>
-                <button class="ctrl-btn" id="btnPiP" title="Picture-in-Picture"><i class="fas fa-clone"></i></button>
-                <button class="ctrl-btn" id="btnFs" title="Fullscreen (f)"><i class="fas fa-expand"></i></button>
+                <button class="ctrl-btn" id="btnPiP" title="<%= t('player.pip') %>"><i class="fas fa-clone"></i></button>
+                <button class="ctrl-btn" id="btnFs" title="<%= t('player.fullscreen') %> (f)"><i class="fas fa-expand"></i></button>
             </div>
         </div>
     </div>
@@ -285,9 +306,36 @@
             else { video.pause(); }
         }
         btnPlay.addEventListener('click', togglePlay);
-        video.addEventListener('click', () => {
-            togglePlay();
-            flashOverlay();
+
+        // Double-tap to skip (mobile), single tap to toggle controls/play
+        let lastTap = 0;
+        let lastTapX = 0;
+        const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+        video.addEventListener('click', e => {
+            const now = Date.now();
+            const dx = Math.abs(e.clientX - lastTapX);
+            if (isTouchDevice && now - lastTap < 350 && dx < 80) {
+                const w = video.clientWidth;
+                if (e.clientX < w / 2) {
+                    video.currentTime = Math.max(0, video.currentTime - 10);
+                    showSkip(skipBack);
+                } else {
+                    video.currentTime = Math.min((video.duration || 0), video.currentTime + 10);
+                    showSkip(skipFwd);
+                }
+                lastTap = 0;
+                return;
+            }
+            lastTap = now;
+            lastTapX = e.clientX;
+            if (isTouchDevice) {
+                // Single tap on mobile just toggles control visibility
+                if (player.classList.contains('show-controls')) player.classList.remove('show-controls');
+                else showControls();
+            } else {
+                togglePlay();
+                flashOverlay();
+            }
         });
         function flashOverlay() {
             centerOverlay.querySelector('i').className = video.paused ? 'fas fa-pause' : 'fas fa-play';

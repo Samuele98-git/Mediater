@@ -1,31 +1,54 @@
 <nav class="nf-nav">
+    <button class="nf-nav-burger" type="button" aria-label="Menu" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+    </button>
+
     <a href="/" class="nf-logo"><%= APP_NAME %></a>
+
     <div class="nf-nav-links">
-        <a href="/" class="<%= (typeof pageType !== 'undefined' && pageType === 'home') ? 'active' : '' %>">Home</a>
-        <a href="/series" class="<%= (typeof pageType !== 'undefined' && pageType === 'series') ? 'active' : '' %>">TV Shows</a>
-        <a href="/movies" class="<%= (typeof pageType !== 'undefined' && pageType === 'movies') ? 'active' : '' %>">Movies</a>
-        <a href="/mylist">My List</a>
+        <a href="/" class="<%= (typeof pageType !== 'undefined' && pageType === 'home') ? 'active' : '' %>"><%= t('nav.home') %></a>
+        <a href="/series" class="<%= (typeof pageType !== 'undefined' && pageType === 'series') ? 'active' : '' %>"><%= t('nav.tv_shows') %></a>
+        <a href="/movies" class="<%= (typeof pageType !== 'undefined' && pageType === 'movies') ? 'active' : '' %>"><%= t('nav.movies') %></a>
+        <a href="/mylist"><%= t('nav.my_list') %></a>
         <% if (user && user.role === 'admin') { %>
-            <a href="/admin">Manage</a>
+            <a href="/admin"><%= t('nav.manage') %></a>
         <% } %>
     </div>
+
     <div class="nf-nav-right">
         <div class="nf-search">
             <button class="nf-search-toggle" type="button" aria-label="Search"><i class="fas fa-search"></i></button>
-            <input class="nf-search-input" type="text" placeholder="Titles, genres" />
+            <input class="nf-search-input" type="text" placeholder="<%= t('nav.search_placeholder') %>" />
         </div>
         <div class="nf-profile" tabindex="0">
             <img class="nf-profile-avatar" src="<%= user && user.avatar ? user.avatar : 'https://ui-avatars.com/api/?background=E50914&color=fff&name=' + encodeURIComponent(user ? user.username : 'U') %>" alt="">
             <i class="fas fa-caret-down caret"></i>
             <div class="nf-profile-menu">
-                <a href="/profile"><i class="fas fa-user"></i> Account</a>
-                <a href="/mylist"><i class="fas fa-list"></i> My List</a>
+                <a href="/profile"><i class="fas fa-user"></i> <%= t('nav.account') %></a>
+                <a href="/mylist"><i class="fas fa-list"></i> <%= t('nav.my_list') %></a>
                 <% if (user && user.role === 'admin') { %>
-                    <a href="/admin"><i class="fas fa-cog"></i> Manage</a>
+                    <a href="/admin"><i class="fas fa-cog"></i> <%= t('nav.manage') %></a>
                 <% } %>
                 <hr>
-                <a href="/logout"><i class="fas fa-sign-out-alt"></i> Sign out</a>
+                <a href="/logout"><i class="fas fa-sign-out-alt"></i> <%= t('nav.sign_out') %></a>
             </div>
         </div>
     </div>
 </nav>
+
+<div class="nf-mobile-drawer" aria-hidden="true">
+    <div class="nf-mobile-search">
+        <i class="fas fa-search"></i>
+        <input type="text" class="nf-mobile-search-input" placeholder="<%= t('nav.search_placeholder') %>" />
+    </div>
+    <a href="/" class="<%= (typeof pageType !== 'undefined' && pageType === 'home') ? 'active' : '' %>"><i class="fas fa-home"></i> <%= t('nav.home') %></a>
+    <a href="/series" class="<%= (typeof pageType !== 'undefined' && pageType === 'series') ? 'active' : '' %>"><i class="fas fa-tv"></i> <%= t('nav.tv_shows') %></a>
+    <a href="/movies" class="<%= (typeof pageType !== 'undefined' && pageType === 'movies') ? 'active' : '' %>"><i class="fas fa-film"></i> <%= t('nav.movies') %></a>
+    <a href="/mylist"><i class="fas fa-list"></i> <%= t('nav.my_list') %></a>
+    <a href="/profile"><i class="fas fa-user"></i> <%= t('nav.account') %></a>
+    <% if (user && user.role === 'admin') { %>
+        <a href="/admin"><i class="fas fa-cog"></i> <%= t('nav.manage') %></a>
+    <% } %>
+    <hr>
+    <a href="/logout" class="danger"><i class="fas fa-sign-out-alt"></i> <%= t('nav.sign_out') %></a>
+</div>

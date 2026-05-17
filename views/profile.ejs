@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= lang %>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account - <%= APP_NAME %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title><%= t('profile.title') %> - <%= APP_NAME %></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/netflix.css">
     <style>
@@ -65,8 +65,15 @@
         .file-hint { font-size: 12px; color: #888; }
 
         @media (max-width: 700px) {
-            .account-wrap { margin: 90px auto 60px; padding: 0 20px; }
-            .profile-grid { grid-template-columns: 1fr; }
+            .account-wrap { margin: 80px auto 60px; padding: 0 16px; }
+            .account-wrap h1 { font-size: 1.8rem; }
+            .profile-grid { grid-template-columns: 1fr; gap: 18px; padding: 18px 0; }
+            .avatar-box { width: 120px; height: 120px; }
+            .avatar-box .overlay { opacity: 1; background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.6)); font-size: 12px; }
+            .form-block input[type="text"], .form-block input[type="password"] { font-size: 16px; padding: 14px; }
+            .actions-row { flex-wrap: wrap; }
+            .actions-row .nf-btn { flex: 1 1 calc(50% - 6px); }
+            .actions-row .danger { width: 100%; text-align: center; margin: 6px 0 0; padding: 10px; border: 1px solid #333; border-radius: 4px; }
         }
     </style>
 </head>
@@ -74,16 +81,14 @@
     <%- include('partials/nav') %>
 
     <main class="account-wrap">
-        <h1>Account</h1>
-        <div class="sub">Member since <%= new Date(user.created_at).toLocaleDateString() %></div>
-
-        <% const params = new URLSearchParams(typeof query !== 'undefined' ? query : ''); %>
+        <h1><%= t('profile.title') %></h1>
+        <div class="sub"><%= t('profile.member_since') %> <%= new Date(user.created_at).toLocaleDateString(dateLocale) %></div>
 
         <form class="profile-grid" action="/profile/update" method="POST" enctype="multipart/form-data">
             <div class="avatar-block">
                 <div class="avatar-box">
                     <img id="avatarPreview" src="<%= user.avatar || ('https://ui-avatars.com/api/?background=E50914&color=fff&size=160&name=' + encodeURIComponent(user.username)) %>" alt="">
-                    <div class="overlay"><i class="fas fa-pencil-alt"></i> Change Avatar</div>
+                    <div class="overlay"><i class="fas fa-pencil-alt"></i> <%= t('profile.change_avatar') %></div>
                     <input type="file" name="avatar" accept="image/*" onchange="previewAvatar(this)">
                 </div>
                 <div class="avatar-meta">
@@ -94,7 +99,7 @@
 
             <div class="form-block">
                 <% if (locals.successMsg) { %>
-                    <div class="alert alert-ok"><i class="fas fa-check-circle"></i> Profile updated</div>
+                    <div class="alert alert-ok"><i class="fas fa-check-circle"></i> <%= t('profile.saved') %></div>
                 <% } %>
                 <% if (locals.errorMsg) { %>
                     <div class="alert alert-err"><i class="fas fa-exclamation-circle"></i> <%= errorMsg %></div>
@@ -102,26 +107,26 @@
 
                 <% if (user.auth_provider === 'oidc') { %>
                     <div class="sso-info">
-                        <i class="fas fa-shield-halved"></i> <strong>SSO Account</strong> — Username and password are managed by your identity provider. You can still change your avatar here.
+                        <i class="fas fa-shield-halved"></i> <strong><%= t('profile.sso_account') %></strong> — <%= t('profile.sso_note') %>
                     </div>
                 <% } %>
 
                 <% if (user.auth_provider === 'local') { %>
                     <div class="field">
-                        <label>Username</label>
+                        <label><%= t('profile.username') %></label>
                         <input type="text" name="username" value="<%= user.username %>" required>
                     </div>
                     <div class="field">
-                        <label>New Password</label>
-                        <input type="password" name="newPassword" placeholder="Leave blank to keep current password" autocomplete="new-password">
+                        <label><%= t('profile.new_password') %></label>
+                        <input type="password" name="newPassword" placeholder="<%= t('profile.password_placeholder') %>" autocomplete="new-password">
                     </div>
                 <% } %>
 
                 <div class="actions-row">
-                    <button type="submit" class="nf-btn nf-btn-play"><i class="fas fa-save"></i> Save</button>
-                    <a href="/" class="nf-btn nf-btn-info"><i class="fas fa-arrow-left"></i> Back to Home</a>
+                    <button type="submit" class="nf-btn nf-btn-play"><i class="fas fa-save"></i> <%= t('profile.save') %></button>
+                    <a href="/" class="nf-btn nf-btn-info"><i class="fas fa-arrow-left"></i> <%= t('profile.back_home') %></a>
                     <a href="/logout" class="danger" style="margin-left:auto; font-size:14px;">
-                        <i class="fas fa-sign-out-alt"></i> Sign out of all devices
+                        <i class="fas fa-sign-out-alt"></i> <%= t('profile.sign_out_all') %>
                     </a>
                 </div>
             </div>

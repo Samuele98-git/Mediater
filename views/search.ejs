@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= lang %>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search - <%= APP_NAME %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title><%= t('search.results_for') %> - <%= APP_NAME %></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/netflix.css">
     <style>
@@ -24,15 +24,15 @@
 
     <main class="search-page">
         <% if (q) { %>
-            <h1>Results for "<b><%= q %></b>"</h1>
+            <h1><%= t('search.results_for') %> "<b><%= q %></b>"</h1>
         <% } else { %>
-            <h1>Search for titles, genres, categories</h1>
+            <h1><%= t('search.placeholder_title') %></h1>
         <% } %>
 
         <% if (q && results.length === 0) { %>
             <div class="empty">
-                <p>No results found for "<%= q %>".</p>
-                <p style="margin-top:6px; font-size:13px;">Try different keywords or check spelling.</p>
+                <p><%= t('search.no_results') %> "<%= q %>".</p>
+                <p style="margin-top:6px; font-size:13px;"><%= t('search.no_results_hint') %></p>
             </div>
         <% } else if (results.length > 0) { %>
             <div class="grid">
@@ -51,6 +51,7 @@
     </main>
 
     <%- include('partials/modal') %>
+    <%- include('partials/i18n') %>
     <script src="/js/netflix.js"></script>
     <script>
         // Open search bar pre-filled

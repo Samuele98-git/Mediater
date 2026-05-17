@@ -24,6 +24,7 @@
 ## ✨ Features
 
 * **Netflix-style interface** — auto-rotating hero, hover previews, detail modal, horizontal rows, custom video player with resume/skip/PiP/keyboard shortcuts.
+* **Perfect on phone** — looks and works perfectly on phone browser.
 * **Continue Watching + My List** — per-user progress tracking and favorites.
 * **Range-based video streaming** — instant seeking even on huge files.
 * **Admin Dashboard** — full GUI management of Movies, Series, Episodes, Users, and Branding.

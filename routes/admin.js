@@ -140,8 +140,12 @@ router.post('/user/delete/:id', async (req, res) => {
 });
 
 router.post('/settings/update', async (req, res) => {
-    for (const [key, value] of Object.entries(req.body)) {
-        await prisma.setting.upsert({ where: { key }, update: { value }, create: { key, value } });
+    try {
+        for (const [key, value] of Object.entries(req.body || {})) {
+            await prisma.setting.upsert({ where: { key }, update: { value }, create: { key, value } });
+        }
+    } catch (e) {
+        console.error('[settings/update] error:', e);
     }
     res.redirect('/admin');
 });

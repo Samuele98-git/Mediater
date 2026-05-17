@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= lang %>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= APP_NAME %> — Home</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title><%= APP_NAME %> — <%= t('nav.home') %></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/netflix.css">
 </head>
@@ -19,7 +19,7 @@
                     <h1 class="nf-hero-title"><%= hero.title %></h1>
                 <% } %>
                 <div class="nf-hero-meta">
-                    <span class="match">98% Match</span>
+                    <span class="match"><%= t('home.match') %></span>
                     <% if (hero.releaseYear) { %><span><%= hero.releaseYear %></span><% } %>
                     <% if (hero.maturity) { %><span class="badge"><%= hero.maturity %></span><% } %>
                     <% if (hero.duration) { %>
@@ -30,9 +30,9 @@
                     <p class="nf-hero-desc"><%= hero.description %></p>
                 <% } %>
                 <div class="nf-hero-actions">
-                    <a href="/watch/<%= hero.id %>" class="nf-btn nf-btn-play"><i class="fas fa-play"></i> Play</a>
+                    <a href="/watch/<%= hero.id %>" class="nf-btn nf-btn-play"><i class="fas fa-play"></i> <%= t('home.play') %></a>
                     <button class="nf-btn nf-btn-info" onclick="window.__nfOpenModal(<%= hero.id %>)">
-                        <i class="fas fa-info-circle"></i> More Info
+                        <i class="fas fa-info-circle"></i> <%= t('home.more_info') %>
                     </button>
                 </div>
             </div>
@@ -40,9 +40,9 @@
     <% } else { %>
         <section class="nf-hero nf-hero-empty">
             <div style="margin-top: 80px;">
-                <h2 style="text-align:center; color:#888;">Your library is empty</h2>
+                <h2 style="text-align:center; color:#888;"><%= t('home.empty_title') %></h2>
                 <% if (user && user.role === 'admin') { %>
-                    <p style="text-align:center; margin-top:14px;"><a href="/admin" class="nf-btn nf-btn-play"><i class="fas fa-plus"></i> Add Content</a></p>
+                    <p style="text-align:center; margin-top:14px;"><a href="/admin" class="nf-btn nf-btn-play"><i class="fas fa-plus"></i> <%= t('home.add_content') %></a></p>
                 <% } %>
             </div>
         </section>
@@ -52,7 +52,7 @@
 
         <% if (continueWatching && continueWatching.length > 0) { %>
             <div class="nf-row">
-                <h2 class="nf-row-title">Continue Watching</h2>
+                <h2 class="nf-row-title"><%= t('home.continue_watching') %></h2>
                 <div class="nf-slider-wrap">
                     <button class="nf-arrow left" aria-label="Scroll left"><i class="fas fa-chevron-left"></i></button>
                     <div class="nf-slider">
@@ -77,7 +77,7 @@
 
         <% if (trending && trending.length > 0) { %>
             <div class="nf-row">
-                <h2 class="nf-row-title">Trending Now</h2>
+                <h2 class="nf-row-title"><%= t('home.trending_now') %></h2>
                 <div class="nf-slider-wrap">
                     <button class="nf-arrow left"><i class="fas fa-chevron-left"></i></button>
                     <div class="nf-slider">
@@ -99,7 +99,7 @@
 
         <% if (myListItems && myListItems.length > 0) { %>
             <div class="nf-row">
-                <h2 class="nf-row-title">My List</h2>
+                <h2 class="nf-row-title"><%= t('nav.my_list') %></h2>
                 <div class="nf-slider-wrap">
                     <button class="nf-arrow left"><i class="fas fa-chevron-left"></i></button>
                     <div class="nf-slider">
@@ -144,10 +144,11 @@
     </div>
 
     <footer style="text-align:center; color:#777; padding: 30px 60px; font-size: 13px;">
-        © <%= new Date().getFullYear() %> <%= APP_NAME %>
+        <%= t('home.footer', { year: new Date().getFullYear(), app: APP_NAME }) %>
     </footer>
 
     <%- include('partials/modal') %>
+    <%- include('partials/i18n') %>
     <script src="/js/netflix.js"></script>
 </body>
 </html>

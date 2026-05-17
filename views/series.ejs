@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= lang %>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><%= series.title %> - <%= APP_NAME %></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/netflix.css">
@@ -98,10 +98,10 @@
                 <h1><%= series.title %></h1>
             <% } %>
             <div class="meta">
-                <span class="match">98% Match</span>
+                <span class="match"><%= t('series.match') %></span>
                 <% if (series.releaseYear) { %><span><%= series.releaseYear %></span><% } %>
                 <% if (series.maturity) { %><span class="badge"><%= series.maturity %></span><% } %>
-                <span><%= episodes.length %> Episode<%= episodes.length === 1 ? '' : 's' %></span>
+                <span><%= episodes.length %> <%= episodes.length === 1 ? t('series.episode_singular') : t('series.episode_plural') %></span>
             </div>
             <% if (series.description) { %>
                 <p class="desc"><%= series.description %></p>
@@ -110,21 +110,21 @@
                 <% const firstEp = episodes[0]; %>
                 <% if (firstEp) { %>
                     <a class="nf-btn nf-btn-play" href="/watch/<%= firstEp.id %>">
-                        <i class="fas fa-play"></i> Play
+                        <i class="fas fa-play"></i> <%= t('series.play') %>
                     </a>
                 <% } %>
-                <button class="nf-btn nf-btn-info" onclick="window.__nfToggleList(<%= series.id %>, this)" title="<%= inMyList ? 'Remove from My List' : 'Add to My List' %>">
+                <button class="nf-btn nf-btn-info" onclick="window.__nfToggleList(<%= series.id %>, this)" title="<%= inMyList ? t('modal.remove_from_my_list') : t('modal.add_to_my_list') %>">
                     <i class="fas <%= inMyList ? 'fa-check' : 'fa-plus' %>"></i>
-                    <%= inMyList ? 'In My List' : 'My List' %>
+                    <%= inMyList ? t('series.in_my_list') : t('series.my_list') %>
                 </button>
             </div>
         </div>
     </section>
 
     <section class="ep-section">
-        <h2>Episodes</h2>
+        <h2><%= t('series.episodes_heading') %></h2>
         <% if (episodes.length === 0) { %>
-            <div class="empty-eps">No episodes available yet.</div>
+            <div class="empty-eps"><%= t('series.no_episodes') %></div>
         <% } else { %>
             <div class="ep-list">
                 <% episodes.forEach(ep => {
@@ -142,7 +142,7 @@
                         </div>
                         <div class="ep-info">
                             <div class="ep-title">
-                                <span><%= ep.title || ('Episode ' + ep.order) %></span>
+                                <span><%= ep.title || (t('player.episode') + ' ' + ep.order) %></span>
                                 <% if (ep.duration) { %><span class="ep-dur"><%= ep.duration %>m</span><% } %>
                             </div>
                             <% if (ep.description) { %>
@@ -156,6 +156,7 @@
     </section>
 
     <%- include('partials/modal') %>
+    <%- include('partials/i18n') %>
     <script src="/js/netflix.js"></script>
 </body>
 </html>

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= lang %>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My List - <%= APP_NAME %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title><%= t('mylist.title') %> - <%= APP_NAME %></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/netflix.css">
     <style>
@@ -24,7 +24,7 @@
     <%- include('partials/nav', { pageType: 'mylist' }) %>
 
     <main class="my-list-page">
-        <h1>My List</h1>
+        <h1><%= t('mylist.title') %></h1>
 
         <% if (items && items.length > 0) { %>
             <div class="grid">
@@ -42,14 +42,15 @@
         <% } else { %>
             <div class="empty">
                 <i class="fas fa-list"></i>
-                <h2>Your list is empty</h2>
-                <p>Add movies and shows from the home page to find them here.</p>
-                <a href="/" class="nf-btn nf-btn-play" style="margin-top:16px;"><i class="fas fa-arrow-left"></i> Browse</a>
+                <h2><%= t('mylist.empty_title') %></h2>
+                <p><%= t('mylist.empty_hint') %></p>
+                <a href="/" class="nf-btn nf-btn-play" style="margin-top:16px;"><i class="fas fa-arrow-left"></i> <%= t('mylist.browse') %></a>
             </div>
         <% } %>
     </main>
 
     <%- include('partials/modal') %>
+    <%- include('partials/i18n') %>
     <script src="/js/netflix.js"></script>
 </body>
 </html>

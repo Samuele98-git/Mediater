@@ -9,6 +9,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import fs from 'fs';
+import { loadLocale, makeT, pickLang, LANG_LABELS, DATE_LOCALES } from './lib/i18n.js';
 
 // Routes
 import authRoutes from './routes/auth.js';
@@ -110,10 +111,17 @@ app.use(async (req, res, next) => {
     try {
         const settings = await prisma.setting.findMany();
         const config = settings.reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {});
+        const lang = pickLang(config.LANGUAGE);
+        const dict = loadLocale(lang);
         res.locals.APP_NAME = config.APP_NAME || 'MEDIATER';
         res.locals.ACCENT_COLOR = config.ACCENT_COLOR || '#E50914';
         res.locals.user = req.user || null;
         res.locals.config = config;
+        res.locals.t = makeT(dict);
+        res.locals.lang = lang;
+        res.locals.dateLocale = DATE_LOCALES[lang] || 'en-US';
+        res.locals.langLabels = LANG_LABELS;
+        res.locals.dict = dict;
         next();
     } catch (e) { next(e); }
 });

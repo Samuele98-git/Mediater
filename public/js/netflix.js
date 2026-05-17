@@ -22,6 +22,54 @@
         document.querySelectorAll('.nf-profile.open').forEach(p => p.classList.remove('open'));
     });
 
+    // Mobile drawer
+    const burger = document.querySelector('.nf-nav-burger');
+    const drawer = document.querySelector('.nf-mobile-drawer');
+    let backdrop = document.querySelector('.nf-mobile-backdrop');
+    if (drawer && !backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.className = 'nf-mobile-backdrop';
+        document.body.appendChild(backdrop);
+    }
+    function closeDrawer() {
+        if (!drawer) return;
+        drawer.classList.remove('open');
+        drawer.setAttribute('aria-hidden', 'true');
+        if (backdrop) backdrop.classList.remove('show');
+        if (burger) burger.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+    }
+    function openDrawer() {
+        if (!drawer) return;
+        drawer.classList.add('open');
+        drawer.setAttribute('aria-hidden', 'false');
+        if (backdrop) backdrop.classList.add('show');
+        if (burger) burger.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+    }
+    if (burger) {
+        burger.addEventListener('click', e => {
+            e.stopPropagation();
+            if (drawer.classList.contains('open')) closeDrawer(); else openDrawer();
+        });
+    }
+    if (backdrop) backdrop.addEventListener('click', closeDrawer);
+    if (drawer) {
+        drawer.querySelectorAll('a').forEach(a => a.addEventListener('click', closeDrawer));
+        const mInput = drawer.querySelector('.nf-mobile-search-input');
+        if (mInput) {
+            mInput.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    const q = mInput.value.trim();
+                    if (q) window.location.href = '/search?q=' + encodeURIComponent(q);
+                }
+            });
+        }
+    }
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeDrawer();
+    });
+
     // Search toggle
     const search = document.querySelector('.nf-search');
     if (search) {
@@ -57,6 +105,11 @@
     // Detail modal
     const modal = document.getElementById('nfModal');
     const modalBody = document.getElementById('nfModalBody');
+    const I18N = (window.__nfI18n || { modal: {}, series: {}, player: {} });
+    const T_M = I18N.modal || {};
+    const T_P = I18N.player || {};
+    function tm(k, fallback) { return (T_M[k] !== undefined) ? T_M[k] : fallback; }
+    function tp(k, fallback) { return (T_P[k] !== undefined) ? T_P[k] : fallback; }
     function closeModal() {
         if (!modal) return;
         modal.classList.remove('show');
@@ -67,10 +120,10 @@
         if (!modal) return;
         modal.classList.add('show');
         document.body.style.overflow = 'hidden';
-        modalBody.innerHTML = '<div style="padding:80px;text-align:center;color:#888;">Loading…</div>';
+        modalBody.innerHTML = '<div style="padding:80px;text-align:center;color:#888;">' + tm('loading', 'Loading…') + '</div>';
         fetch('/api/details/' + id).then(r => r.json()).then(data => {
             renderModal(data);
-        }).catch(() => { modalBody.innerHTML = '<div style="padding:40px;color:#888;">Failed to load.</div>'; });
+        }).catch(() => { modalBody.innerHTML = '<div style="padding:40px;color:#888;">' + tm('failed_to_load', 'Failed to load.') + '</div>'; });
     }
     function fmtDur(seconds) {
         if (!seconds || !Number.isFinite(+seconds)) return '';
@@ -86,11 +139,12 @@
         const year = media.releaseYear || '';
         const dur = media.duration ? fmtDur(media.duration * 60) : '';
         const maturity = media.maturity || '';
-        const playLabel = (progress && progress.position > 5) ? 'Resume' : 'Play';
+        const playLabel = (progress && progress.position > 5) ? tm('resume', 'Resume') : tm('play', 'Play');
         const watchTarget = (media.type === 'series' && episodes.length > 0) ? episodes[0].id : media.id;
+        const epWord = tp('episode', 'Episode');
 
         const episodeHtml = (media.type === 'series' && episodes.length > 0) ? `
-            <h3>Episodes</h3>
+            <h3>${tm('episodes', 'Episodes')}</h3>
             <div class="nf-modal-episodes">
                 ${episodes.map(ep => `
                     <div class="nf-modal-ep" onclick="window.location.href='/watch/${ep.id}'">
@@ -99,7 +153,7 @@
                             <div class="play-ov"><i class="fas fa-play"></i></div>
                         </div>
                         <div class="info">
-                            <div class="ep-title">${escapeHtml(ep.title || ('Episode ' + ep.order))}</div>
+                            <div class="ep-title">${escapeHtml(ep.title || (epWord + ' ' + ep.order))}</div>
                             <div class="ep-desc">${escapeHtml(ep.description || '')}</div>
                             ${ep.duration ? `<div class="ep-dur">${fmtDur(ep.duration * 60)}</div>` : ''}
                         </div>
@@ -115,7 +169,7 @@
             <div class="nf-modal-content">
                 <div class="actions">
                     <a class="nf-btn nf-btn-play" href="/watch/${watchTarget}"><i class="fas fa-play"></i> ${playLabel}</a>
-                    <button class="nf-btn nf-btn-icon" title="${inMyList ? 'Remove from My List' : 'Add to My List'}" onclick="window.__nfToggleList(${media.id}, this)">
+                    <button class="nf-btn nf-btn-icon" title="${inMyList ? tm('remove_from_my_list', 'Remove from My List') : tm('add_to_my_list', 'Add to My List')}" onclick="window.__nfToggleList(${media.id}, this)">
                         <i class="fas ${inMyList ? 'fa-check' : 'fa-plus'}"></i>
                     </button>
                 </div>
@@ -126,15 +180,15 @@
                                 ${maturity ? `<span class="badge">${escapeHtml(maturity)}</span>` : ''}
                                 ${year ? `<span>${year}</span>` : ''}
                                 ${dur ? `<span>${dur}</span>` : ''}
-                                <span class="match">98% Match</span>
+                                <span class="match">${tm('match', '98% Match')}</span>
                             </div>
                         </div>
-                        <p class="nf-modal-desc">${escapeHtml(media.description || 'No description available.')}</p>
+                        <p class="nf-modal-desc">${escapeHtml(media.description || tm('no_description', 'No description available.'))}</p>
                     </div>
                     <div class="nf-modal-side">
-                        ${media.category ? `<div><span class="k">Category:</span> ${escapeHtml(media.category)}</div>` : ''}
-                        ${media.genres ? `<div style="margin-top:6px;"><span class="k">Genres:</span> ${escapeHtml(media.genres)}</div>` : ''}
-                        <div style="margin-top:6px;"><span class="k">Type:</span> ${escapeHtml(media.type)}</div>
+                        ${media.category ? `<div><span class="k">${tm('category', 'Category')}:</span> ${escapeHtml(media.category)}</div>` : ''}
+                        ${media.genres ? `<div style="margin-top:6px;"><span class="k">${tm('genres', 'Genres')}:</span> ${escapeHtml(media.genres)}</div>` : ''}
+                        <div style="margin-top:6px;"><span class="k">${tm('type', 'Type')}:</span> ${escapeHtml(media.type)}</div>
                     </div>
                 </div>
                 ${episodeHtml}
@@ -155,7 +209,7 @@
             if (btn) {
                 const icon = btn.querySelector('i');
                 icon.className = 'fas ' + (j.inList ? 'fa-check' : 'fa-plus');
-                btn.title = j.inList ? 'Remove from My List' : 'Add to My List';
+                btn.title = j.inList ? tm('remove_from_my_list', 'Remove from My List') : tm('add_to_my_list', 'Add to My List');
             }
         } catch (e) {}
     };

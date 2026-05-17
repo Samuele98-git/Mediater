@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= lang %>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In - <%= APP_NAME %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title><%= t('login.title') %> - <%= APP_NAME %></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/netflix.css">
     <style>
@@ -112,7 +112,7 @@
 
     <main class="login-wrap">
         <div class="login-card">
-            <h1>Sign In</h1>
+            <h1><%= t('login.title') %></h1>
 
             <% if (error) { %>
                 <div class="alert"><i class="fas fa-exclamation-circle"></i> <%= error %></div>
@@ -121,29 +121,29 @@
             <form action="/auth/local" method="POST">
                 <div class="field">
                     <input type="text" name="username" id="username" placeholder=" " required autocomplete="username">
-                    <label for="username">Username</label>
+                    <label for="username"><%= t('login.username') %></label>
                 </div>
                 <div class="field">
                     <input type="password" name="password" id="password" placeholder=" " required autocomplete="current-password">
-                    <label for="password">Password</label>
+                    <label for="password"><%= t('login.password') %></label>
                 </div>
-                <button type="submit" class="btn-primary">Sign In</button>
+                <button type="submit" class="btn-primary"><%= t('login.sign_in_btn') %></button>
 
                 <div class="help">
-                    <label><input type="checkbox" checked> Remember me</label>
-                    <span style="color:#b3b3b3;">Need help?</span>
+                    <label><input type="checkbox" checked> <%= t('login.remember_me') %></label>
+                    <span style="color:#b3b3b3;"><%= t('login.need_help') %></span>
                 </div>
             </form>
 
             <% if (hasSso) { %>
-                <div class="divider">OR</div>
+                <div class="divider"><%= t('login.or') %></div>
                 <a href="/auth/sso" style="text-decoration:none;">
-                    <button class="btn-sso" type="button"><i class="fas fa-shield-halved"></i> Sign in with SSO</button>
+                    <button class="btn-sso" type="button"><i class="fas fa-shield-halved"></i> <%= t('login.sign_in_sso') %></button>
                 </a>
             <% } %>
 
             <p class="footer-link">
-                Powered by <span><%= APP_NAME %></span>.
+                <%= t('login.powered_by') %> <span><%= APP_NAME %></span>.
             </p>
         </div>
     </main>
