@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My List - <%= APP_NAME %></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/netflix.css">
+    <style>
+        .my-list-page { padding: 110px 60px 80px; }
+        .my-list-page h1 { font-size: 2rem; font-weight: 700; margin: 0 0 28px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+        .grid .nf-card { width: 100%; aspect-ratio: 16/9; flex: none; }
+        .empty { text-align: center; padding: 80px 16px; color: #888; }
+        .empty i { font-size: 3rem; color: #444; margin-bottom: 16px; display: block; }
+        .empty h2 { font-weight: 600; color: #e5e5e5; }
+        @media (max-width: 600px) {
+            .my-list-page { padding: 90px 16px 80px; }
+            .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/nav', { pageType: 'mylist' }) %>
+
+    <main class="my-list-page">
+        <h1>My List</h1>
+
+        <% if (items && items.length > 0) { %>
+            <div class="grid">
+                <% items.forEach(m => { %>
+                    <div class="nf-card" data-id="<%= m.id %>">
+                        <% if (m.thumbnail || m.backdrop) { %>
+                            <img src="<%= m.backdrop || m.thumbnail %>" loading="lazy" alt="<%= m.title %>">
+                        <% } else { %>
+                            <div class="placeholder"><i class="fas fa-film"></i></div>
+                        <% } %>
+                        <div class="nf-card-title-overlay"><%= m.title %></div>
+                    </div>
+                <% }) %>
+            </div>
+        <% } else { %>
+            <div class="empty">
+                <i class="fas fa-list"></i>
+                <h2>Your list is empty</h2>
+                <p>Add movies and shows from the home page to find them here.</p>
+                <a href="/" class="nf-btn nf-btn-play" style="margin-top:16px;"><i class="fas fa-arrow-left"></i> Browse</a>
+            </div>
+        <% } %>
+    </main>
+
+    <%- include('partials/modal') %>
+    <script src="/js/netflix.js"></script>
+</body>
+</html>

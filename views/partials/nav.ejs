@@ -1,0 +1,31 @@
+<nav class="nf-nav">
+    <a href="/" class="nf-logo"><%= APP_NAME %></a>
+    <div class="nf-nav-links">
+        <a href="/" class="<%= (typeof pageType !== 'undefined' && pageType === 'home') ? 'active' : '' %>">Home</a>
+        <a href="/series" class="<%= (typeof pageType !== 'undefined' && pageType === 'series') ? 'active' : '' %>">TV Shows</a>
+        <a href="/movies" class="<%= (typeof pageType !== 'undefined' && pageType === 'movies') ? 'active' : '' %>">Movies</a>
+        <a href="/mylist">My List</a>
+        <% if (user && user.role === 'admin') { %>
+            <a href="/admin">Manage</a>
+        <% } %>
+    </div>
+    <div class="nf-nav-right">
+        <div class="nf-search">
+            <button class="nf-search-toggle" type="button" aria-label="Search"><i class="fas fa-search"></i></button>
+            <input class="nf-search-input" type="text" placeholder="Titles, genres" />
+        </div>
+        <div class="nf-profile" tabindex="0">
+            <img class="nf-profile-avatar" src="<%= user && user.avatar ? user.avatar : 'https://ui-avatars.com/api/?background=E50914&color=fff&name=' + encodeURIComponent(user ? user.username : 'U') %>" alt="">
+            <i class="fas fa-caret-down caret"></i>
+            <div class="nf-profile-menu">
+                <a href="/profile"><i class="fas fa-user"></i> Account</a>
+                <a href="/mylist"><i class="fas fa-list"></i> My List</a>
+                <% if (user && user.role === 'admin') { %>
+                    <a href="/admin"><i class="fas fa-cog"></i> Manage</a>
+                <% } %>
+                <hr>
+                <a href="/logout"><i class="fas fa-sign-out-alt"></i> Sign out</a>
+            </div>
+        </div>
+    </div>
+</nav>

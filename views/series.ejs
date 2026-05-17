@@ -1,43 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title><%= series.title %></title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= series.title %> - <%= APP_NAME %></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/netflix.css">
     <style>
-        body { background: #141414; color: white; font-family: sans-serif; padding: 40px; margin: 0; }
-        .header { display: flex; gap: 30px; margin-bottom: 40px; }
-        .poster { height: 350px; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        .ep-list { display: grid; gap: 10px; }
-        .ep { background: #222; padding: 20px; border-radius: 6px; text-decoration: none; color: white; display: flex; align-items: center; justify-content: space-between; transition: 0.2s; }
-        .ep:hover { background: #333; transform: translateX(10px); }
-        .back { color: #888; text-decoration: none; display: block; margin-bottom: 20px; }
-        .back:hover { color: white; }
+        .detail-hero {
+            position: relative;
+            min-height: 78vh;
+            padding: 140px 60px 80px;
+            background-size: cover;
+            background-position: center top;
+            background-repeat: no-repeat;
+        }
+        .detail-hero::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(77deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 35%, rgba(0,0,0,0) 65%);
+        }
+        .detail-hero::after {
+            content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 35%;
+            background: linear-gradient(180deg, rgba(20,20,20,0) 0%, rgba(20,20,20,0.6) 60%, #141414 100%);
+        }
+        .detail-content { position: relative; z-index: 2; max-width: 640px; }
+        .detail-content .logo-img { max-width: 380px; max-height: 180px; margin-bottom: 22px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.7)); }
+        .detail-content h1 { font-size: 3rem; margin: 0 0 18px; font-weight: 800; }
+        .detail-content .meta { display: flex; gap: 12px; color: #d4d4d4; font-size: 14px; margin-bottom: 14px; }
+        .detail-content .meta .match { color: #46d369; font-weight: 700; }
+        .detail-content .meta .badge { border: 1px solid #888; padding: 1px 6px; font-size: 11px; }
+        .detail-content .desc { font-size: 1.1rem; line-height: 1.5; color: #f1f1f1; margin-bottom: 26px; max-width: 540px; }
+        .detail-content .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+        .ep-section {
+            padding: 30px 60px 80px;
+            position: relative; z-index: 3;
+            background: #141414;
+        }
+        .ep-section h2 { font-size: 1.5rem; font-weight: 700; margin: 0 0 24px; }
+
+        .ep-list { display: flex; flex-direction: column; }
+        .ep-row {
+            display: grid; grid-template-columns: 50px 220px 1fr;
+            gap: 24px; padding: 22px 0;
+            border-top: 1px solid #2a2a2a;
+            align-items: center; cursor: pointer;
+            transition: background 0.15s;
+        }
+        .ep-row:last-of-type { border-bottom: 1px solid #2a2a2a; }
+        .ep-row:hover { background: rgba(255,255,255,0.03); }
+        .ep-row .ep-num { font-size: 1.6rem; color: #d2d2d2; text-align: center; }
+        .ep-row .ep-thumb {
+            aspect-ratio: 16/9; background: #000; background-size: cover; background-position: center;
+            border-radius: 4px; position: relative; overflow: hidden;
+        }
+        .ep-row .ep-thumb .play-ov {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.55); opacity: 0; transition: opacity 0.2s ease; font-size: 28px;
+        }
+        .ep-row:hover .ep-thumb .play-ov { opacity: 1; }
+        .ep-row .ep-prog {
+            position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,0.3);
+        }
+        .ep-row .ep-prog > span { display: block; height: 100%; background: var(--nf-red); }
+        .ep-row .ep-info .ep-title { font-size: 1.1rem; font-weight: 600; margin: 0 0 8px; display: flex; gap: 12px; align-items: center; }
+        .ep-row .ep-info .ep-title .ep-dur { font-size: 13px; color: #888; font-weight: 400; }
+        .ep-row .ep-info .ep-desc { font-size: 14px; color: #d2d2d2; line-height: 1.45; margin: 0; }
+
+        .empty-eps { color: #888; padding: 40px 0; text-align: center; }
+
+        @media (max-width: 900px) {
+            .detail-hero { padding: 110px 30px 60px; }
+            .detail-content h1 { font-size: 2.2rem; }
+            .ep-section { padding: 30px 30px 60px; }
+            .ep-row { grid-template-columns: 30px 140px 1fr; gap: 14px; }
+        }
+        @media (max-width: 600px) {
+            .detail-hero { padding: 100px 16px 50px; min-height: 60vh; }
+            .detail-content h1 { font-size: 1.6rem; }
+            .detail-content .desc { font-size: 0.95rem; }
+            .ep-section { padding: 24px 16px 60px; }
+            .ep-row { grid-template-columns: 24px 100px 1fr; gap: 10px; padding: 14px 0; }
+            .ep-row .ep-info .ep-title { font-size: 0.95rem; }
+            .ep-row .ep-info .ep-desc { display: none; }
+        }
     </style>
 </head>
 <body>
-    <a href="/" class="back"><i class="fas fa-arrow-left"></i> Back to Library</a>
-    <div class="header">
-        <img src="<%= series.thumbnail %>" class="poster">
-        <div>
-            <h1 style="font-size: 3rem; margin-top: 0;"><%= series.title %></h1>
-            <p style="color:#aaa; font-size:1.2rem;"><%= series.category %></p>
+    <%- include('partials/nav') %>
+
+    <% const heroBg = series.backdrop || series.thumbnail || ''; %>
+    <section class="detail-hero" style="background-image:url('<%= heroBg %>')">
+        <div class="detail-content">
+            <% if (series.logoUrl) { %>
+                <img src="<%= series.logoUrl %>" alt="<%= series.title %>" class="logo-img">
+            <% } else { %>
+                <h1><%= series.title %></h1>
+            <% } %>
+            <div class="meta">
+                <span class="match">98% Match</span>
+                <% if (series.releaseYear) { %><span><%= series.releaseYear %></span><% } %>
+                <% if (series.maturity) { %><span class="badge"><%= series.maturity %></span><% } %>
+                <span><%= episodes.length %> Episode<%= episodes.length === 1 ? '' : 's' %></span>
+            </div>
+            <% if (series.description) { %>
+                <p class="desc"><%= series.description %></p>
+            <% } %>
+            <div class="actions">
+                <% const firstEp = episodes[0]; %>
+                <% if (firstEp) { %>
+                    <a class="nf-btn nf-btn-play" href="/watch/<%= firstEp.id %>">
+                        <i class="fas fa-play"></i> Play
+                    </a>
+                <% } %>
+                <button class="nf-btn nf-btn-info" onclick="window.__nfToggleList(<%= series.id %>, this)" title="<%= inMyList ? 'Remove from My List' : 'Add to My List' %>">
+                    <i class="fas <%= inMyList ? 'fa-check' : 'fa-plus' %>"></i>
+                    <%= inMyList ? 'In My List' : 'My List' %>
+                </button>
+            </div>
         </div>
-    </div>
-    
-    <h2>Episodes</h2>
-    <div class="ep-list">
+    </section>
+
+    <section class="ep-section">
+        <h2>Episodes</h2>
         <% if (episodes.length === 0) { %>
-            <p style="color:#666;">No episodes available.</p>
+            <div class="empty-eps">No episodes available yet.</div>
+        <% } else { %>
+            <div class="ep-list">
+                <% episodes.forEach(ep => {
+                    const prog = progressMap[ep.id];
+                    const pct = prog && prog.duration > 0 ? Math.min(100, (prog.position / prog.duration) * 100) : 0;
+                    const thumb = ep.thumbnail || series.backdrop || series.thumbnail || '';
+                %>
+                    <div class="ep-row" onclick="window.location.href='/watch/<%= ep.id %>'">
+                        <div class="ep-num"><%= ep.order %></div>
+                        <div class="ep-thumb" style="background-image:url('<%= thumb %>')">
+                            <div class="play-ov"><i class="fas fa-play"></i></div>
+                            <% if (pct > 1) { %>
+                                <div class="ep-prog"><span style="width: <%= pct %>%"></span></div>
+                            <% } %>
+                        </div>
+                        <div class="ep-info">
+                            <div class="ep-title">
+                                <span><%= ep.title || ('Episode ' + ep.order) %></span>
+                                <% if (ep.duration) { %><span class="ep-dur"><%= ep.duration %>m</span><% } %>
+                            </div>
+                            <% if (ep.description) { %>
+                                <p class="ep-desc"><%= ep.description %></p>
+                            <% } %>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
         <% } %>
-        <% episodes.forEach(ep => { %>
-            <a href="/watch/<%= ep.id %>" class="ep">
-                <div style="display:flex; align-items:center; gap:20px;">
-                    <span style="font-size:1.5rem; color:#555; font-weight:bold;"><%= ep.order %></span>
-                    <span style="font-size:1.1rem;"><%= ep.title || 'Episode ' + ep.order %></span>
-                </div>
-                <i class="fas fa-play-circle" style="font-size:1.5rem;"></i>
-            </a>
-        <% }) %>
-    </div>
+    </section>
+
+    <%- include('partials/modal') %>
+    <script src="/js/netflix.js"></script>
 </body>
 </html>

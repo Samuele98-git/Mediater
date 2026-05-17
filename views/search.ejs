@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search - <%= APP_NAME %></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/netflix.css">
+    <style>
+        .search-page { padding: 110px 60px 80px; }
+        .search-page h1 { font-size: 1.4rem; font-weight: 500; margin: 0 0 28px; color: #d2d2d2; }
+        .search-page h1 b { color: white; font-weight: 700; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+        .grid .nf-card { width: 100%; aspect-ratio: 16/9; flex: none; }
+        .empty { text-align: center; padding: 60px 16px; color: #888; }
+        @media (max-width: 600px) {
+            .search-page { padding: 90px 16px 80px; }
+            .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/nav', { pageType: 'search' }) %>
+
+    <main class="search-page">
+        <% if (q) { %>
+            <h1>Results for "<b><%= q %></b>"</h1>
+        <% } else { %>
+            <h1>Search for titles, genres, categories</h1>
+        <% } %>
+
+        <% if (q && results.length === 0) { %>
+            <div class="empty">
+                <p>No results found for "<%= q %>".</p>
+                <p style="margin-top:6px; font-size:13px;">Try different keywords or check spelling.</p>
+            </div>
+        <% } else if (results.length > 0) { %>
+            <div class="grid">
+                <% results.forEach(m => { %>
+                    <div class="nf-card" data-id="<%= m.id %>">
+                        <% if (m.thumbnail || m.backdrop) { %>
+                            <img src="<%= m.backdrop || m.thumbnail %>" loading="lazy" alt="<%= m.title %>">
+                        <% } else { %>
+                            <div class="placeholder"><i class="fas fa-film"></i></div>
+                        <% } %>
+                        <div class="nf-card-title-overlay"><%= m.title %></div>
+                    </div>
+                <% }) %>
+            </div>
+        <% } %>
+    </main>
+
+    <%- include('partials/modal') %>
+    <script src="/js/netflix.js"></script>
+    <script>
+        // Open search bar pre-filled
+        const s = document.querySelector('.nf-search');
+        const q = "<%- q ? q.replace(/[\"\\\\]/g, m => '\\\\' + m) : '' %>";
+        if (s && q) {
+            s.classList.add('open');
+            s.querySelector('input').value = q;
+        }
+    </script>
+</body>
+</html>

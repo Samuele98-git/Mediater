@@ -1,0 +1,38 @@
+services:
+  mediater:
+    build: .
+    image: mediater:latest
+    container_name: mediater
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      UPLOAD_DIR: /data/uploads
+      SESSION_DIR: /data/sessions
+      DATABASE_URL: file:/data/mediater.db
+    ports:
+      - "${HTTP_PORT:-3000}:3000"
+    volumes:
+      - mediater_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    # Drop kernel capabilities we don't need + run with no-new-privileges
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Reasonable resource caps — bump if you have headroom
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+volumes:
+  mediater_data:

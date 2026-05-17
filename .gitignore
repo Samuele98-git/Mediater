@@ -1,5 +1,35 @@
+# Dependencies
 node_modules
-# Keep environment variables out of version control
-.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Generated Prisma client
 /generated/prisma
+
+# Runtime data
+sessions/
+data/
+public/uploads/
+*.db
+*.db-journal
+sessions.db
+sessions/
+
+# Logs
+logs/
+*.log
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Docker
+.dockerignore.local

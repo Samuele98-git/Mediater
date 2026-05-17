@@ -2,35 +2,150 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - <%= APP_NAME %></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/netflix.css">
     <style>
-        body { background: #141414; display: flex; align-items: center; justify-content: center; height: 100vh; color: white; }
-        .box { background: rgba(0,0,0,0.8); padding: 40px; width: 400px; border-radius: 8px; }
-        .btn-red { background: #E50914; color: white; width: 100%; border: none; padding: 10px; font-weight: bold; }
+        body {
+            min-height: 100vh;
+            background:
+                linear-gradient(0deg, rgba(0,0,0,0.6), rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.85)),
+                url('https://assets.nflxext.com/ffe/siteui/vlv3/4d7bb476-6d8b-4063-8a05-e25fe7423203/EN-US-default.jpg') center/cover no-repeat #000;
+            position: relative;
+        }
+        body::before {
+            content:''; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 0;
+        }
+        .login-header {
+            position: relative; z-index: 1;
+            padding: 22px 60px;
+        }
+        .login-header .nf-logo { font-size: 36px; letter-spacing: -1.5px; }
+        .login-wrap {
+            position: relative; z-index: 1;
+            display: flex; align-items: flex-start; justify-content: center;
+            padding: 30px 16px 80px;
+        }
+        .login-card {
+            background: rgba(0,0,0,0.75);
+            padding: 60px 68px 40px;
+            width: 100%; max-width: 450px;
+            border-radius: 4px;
+            color: white;
+        }
+        .login-card h1 { font-size: 32px; font-weight: 700; margin: 0 0 28px; }
+        .login-card .field {
+            position: relative; margin-bottom: 16px;
+        }
+        .login-card .field input {
+            width: 100%; padding: 16px 20px 0;
+            height: 50px; background: #333;
+            border: none; border-radius: 4px;
+            color: white; font-size: 16px; outline: none;
+            transition: background 0.2s ease;
+        }
+        .login-card .field input:focus,
+        .login-card .field input:not(:placeholder-shown) { background: #454545; }
+        .login-card .field label {
+            position: absolute; left: 20px; top: 50%;
+            transform: translateY(-50%);
+            color: #8c8c8c; font-size: 16px;
+            transition: 0.2s ease; pointer-events: none;
+        }
+        .login-card .field input:focus + label,
+        .login-card .field input:not(:placeholder-shown) + label {
+            top: 14px; transform: none;
+            font-size: 11px;
+        }
+        .login-card .btn-primary {
+            width: 100%; background: var(--nf-red);
+            color: white; border: none; padding: 14px;
+            font-size: 16px; font-weight: 700; border-radius: 4px;
+            cursor: pointer; margin-top: 22px;
+            transition: background 0.2s ease;
+        }
+        .login-card .btn-primary:hover { background: var(--nf-red-hover); }
+        .login-card .btn-sso {
+            width: 100%; background: #333; color: white; border: none;
+            padding: 14px; font-size: 16px; font-weight: 600; border-radius: 4px;
+            cursor: pointer; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 10px;
+            transition: background 0.2s ease;
+        }
+        .login-card .btn-sso:hover { background: #444; }
+        .login-card .divider {
+            color: #8c8c8c; text-align: center; margin: 20px 0 6px;
+            font-size: 14px;
+        }
+        .login-card .help {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 14px; font-size: 13px; color: #b3b3b3;
+        }
+        .login-card .help label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+        .login-card .help input { appearance: none; width: 16px; height: 16px; background: #737373; border-radius: 2px; cursor: pointer; }
+        .login-card .help input:checked { background: var(--nf-red); }
+        .login-card .footer-link { margin-top: 40px; color: #737373; font-size: 14px; }
+        .login-card .footer-link span { color: white; cursor: pointer; }
+        .login-card .footer-link span:hover { text-decoration: underline; }
+        .alert {
+            background: #e87c03; color: white;
+            padding: 10px 16px; border-radius: 4px;
+            margin-bottom: 16px; font-size: 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .legal {
+            text-align: center; color: #999; font-size: 12px;
+            margin-top: 40px; padding: 0 24px;
+        }
+        @media (max-width: 740px) {
+            .login-header { padding: 18px 22px; }
+            .login-card { padding: 32px 24px; background: rgba(0,0,0,0.6); }
+        }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h2 class="text-center mb-4">MEDIATER</h2>
-        
-        <% if (error) { %>
-            <div class="alert alert-danger text-center p-2"><%= error %></div>
-        <% } %>
+    <header class="login-header">
+        <a href="/" class="nf-logo"><%= APP_NAME %></a>
+    </header>
 
-        <form action="/auth/local" method="POST">
-            <div class="mb-3">
-                <input type="text" name="username" class="form-control" placeholder="Username" required>
-            </div>
-            <div class="mb-3">
-                <input type="password" name="password" class="form-control" placeholder="Password" required>
-            </div>
-            <button type="submit" class="btn btn-red">LOGIN</button>
-        </form>
+    <main class="login-wrap">
+        <div class="login-card">
+            <h1>Sign In</h1>
 
-        <% if (hasSso) { %>
-            <a href="/auth/sso" class="btn btn-light w-100 mt-3 fw-bold">Authentik SSO</a>
-        <% } %>
-    </div>
+            <% if (error) { %>
+                <div class="alert"><i class="fas fa-exclamation-circle"></i> <%= error %></div>
+            <% } %>
+
+            <form action="/auth/local" method="POST">
+                <div class="field">
+                    <input type="text" name="username" id="username" placeholder=" " required autocomplete="username">
+                    <label for="username">Username</label>
+                </div>
+                <div class="field">
+                    <input type="password" name="password" id="password" placeholder=" " required autocomplete="current-password">
+                    <label for="password">Password</label>
+                </div>
+                <button type="submit" class="btn-primary">Sign In</button>
+
+                <div class="help">
+                    <label><input type="checkbox" checked> Remember me</label>
+                    <span style="color:#b3b3b3;">Need help?</span>
+                </div>
+            </form>
+
+            <% if (hasSso) { %>
+                <div class="divider">OR</div>
+                <a href="/auth/sso" style="text-decoration:none;">
+                    <button class="btn-sso" type="button"><i class="fas fa-shield-halved"></i> Sign in with SSO</button>
+                </a>
+            <% } %>
+
+            <p class="footer-link">
+                Powered by <span><%= APP_NAME %></span>.
+            </p>
+        </div>
+    </main>
 </body>
 </html>

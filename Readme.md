@@ -1,180 +1,307 @@
 # Mediater 🍿
 
-**Mediater** is a self-hosted, premium media streaming server inspired by the aesthetics of popular streaming platforms. It features a sleek, responsive "Netflix-style" viewer interface and a powerful Admin Dashboard for managing content, users, and settings without touching code.
+**Mediater** is a self-hosted, Netflix-style media streaming server with a sleek viewer interface and a full Admin Dashboard for managing content, users, and settings without touching code.
 
 ![Mediater](/imgxtx/mediater.png)
 
+## 📑 Table of Contents
+
+- [Features](#-features)
+- [Prerequisites](#-prerequisites)
+- [Quick start](#-quick-start)
+- [Makefile shortcuts](#-makefile-shortcuts)
+- [Environment variables](#-environment-variables-env)
+- [Server deployment](#-server-deployment)
+- [Safety checklist](#-safety-checklist-before-going-public)
+- [Player keyboard shortcuts](#-player-keyboard-shortcuts)
+- [HTTP endpoints](#-http-endpoints)
+- [Configuration & Customization](#-configuration--customization)
+- [Project structure](#-project-structure)
+- [Troubleshooting](#-troubleshooting)
+
+---
+
 ## ✨ Features
 
-* **Premium Interface:** Dark mode, responsive design, horizontal sliders, and touch support for mobile/tablets.
-* **Admin Dashboard:** Full GUI management of Movies, Series, and Episodes.
-* **Drag & Drop Upload:** Upload covers and video files directly from the browser to your server.
-* **User Management:** Create Admins and Viewers. Users can manage their own profiles (Avatar/Password).
-* **SSO Support:** Native integration for **Authentik** and **Keycloak** (OpenID Connect).
-* **Series Support:** Automatic handling of Seasons/Episodes with a dedicated playlist view.
-* **Persistent Sessions:** Secure login sessions that survive server restarts.
-* **Customization:** Change the App Name and Accent Colors dynamically from the Admin Settings.
+* **Netflix-style interface** — auto-rotating hero, hover previews, detail modal, horizontal rows, custom video player with resume/skip/PiP/keyboard shortcuts.
+* **Continue Watching + My List** — per-user progress tracking and favorites.
+* **Range-based video streaming** — instant seeking even on huge files.
+* **Admin Dashboard** — full GUI management of Movies, Series, Episodes, Users, and Branding.
+* **Drag & Drop Upload** for covers, backdrops, logos, and video files.
+* **SSO Support** — native OpenID Connect (Authentik / Keycloak).
+* **Hardened defaults** — bcrypt-hashed passwords, signed sessions, opt-in HTTPS cookies, trust-proxy support, security headers.
+* **Multiple deploy paths** — plain Node, PM2, Docker / Docker Compose.
 
 ---
 
 ## 🚀 Prerequisites
 
-Before you begin, ensure you have the following installed on your machine:
-
-* **Node.js** (Version 18 or higher) - [Download Here](https://nodejs.org/)
-* **Git** - [Download Here](https://git-scm.com/)
+* **Node.js 18+** — [Download](https://nodejs.org/)  *(or use Docker — see below)*
+* **Git** — [Download](https://git-scm.com/)
 
 ---
 
-## 💻 Local Installation (Windows, macOS, Linux)
-
-Follow these steps to run Mediater on your personal computer for development or home use.
-
-### 1. Clone the Repository
-Open your terminal (Command Prompt, PowerShell, or Terminal) and run:
+## ⚡ Quick start
 
 ```bash
 git clone https://github.com/Samuele98-git/Mediater.git
-cd mediater
+cd Mediater
 ```
 
-### 2. Install Dependencies
-Install the required system packages:
+Then pick **one** of the three options below.
+
+### Option A — One-shot script (recommended)
 
 ```bash
+# Linux / macOS / WSL
+./scripts/setup.sh   # installs deps, creates .env, generates SESSION_SECRET, runs migrations
+npm run dev          # development with auto-reload
+# or
+./scripts/start.sh   # production — uses PM2 if installed, otherwise foreground
+```
+
+```powershell
+# Windows
+.\scripts\setup.ps1
+npm run dev
+# or
+.\scripts\start.ps1
+```
+
+### Option B — Docker (no Node required)
+
+```bash
+cp .env.example .env                 # then edit .env
+docker compose build
+docker compose up -d
+docker compose logs -f               # tail logs
+```
+
+All persistent data (DB, uploads, sessions) lives in the named volume `mediater_data` — survives `docker compose down`.
+
+### Option C — Manual
+
+```bash
+cp .env.example .env                 # generate a SESSION_SECRET in here
 npm install
-```
-
-### 3. Initialize the Database
-Mediater uses **SQLite**, so no external database installation is required. Run this command to create the database file:
-
-```bash
 npx prisma db push
+npm start                            # production
+# or
+npm run dev                          # development
 ```
 
-### 4. Start the Server
-Launch the application:
-
-```bash
-node server.js
-```
-
-### 5. Access the App
-Open your browser and navigate to:
-**http://localhost:3000**
-
-> **Default Credentials:**
->
-> * **Username:** `admin`
-> * **Password:** `admin123`
+Open **http://localhost:3000** and sign in with the admin credentials from your `.env` (default: `admin / admin123` — **change immediately**).
 
 ---
 
-## 🌐 Server Deployment (VPS / Ubuntu / Debian)
-
-If you want to run Mediater on a VPS (like DigitalOcean, Hetzner, AWS) to access it from anywhere.
-
-### 1. Setup on Server
-Log into your server and follow the **Local Installation** steps above (Clone, Install, DB Push).
-
-### 2. Run in Background (PM2)
-Instead of running `node server.js` (which stops when you close the SSH window), use **PM2** to keep it running forever.
+## 🛠 Makefile shortcuts
 
 ```bash
-# Install PM2 globally
-sudo npm install -g pm2
-
-# Start Mediater
-pm2 start server.js --name "mediater"
-
-# Make it start automatically on server reboot
-pm2 startup
-pm2 save
+make help            # list every target
+make setup           # first-time setup
+make dev             # development mode
+make start           # production mode (foreground)
+make migrate         # prisma db push
+make pm2-start       # run under PM2
+make docker-up       # start Docker stack
+make docker-logs     # tail container logs
+make backup          # snapshot uploads + DB + sessions into ./backups/
 ```
 
-### 3. Expose to the Web (Nginx Proxy)
-To access it via a domain (e.g., `media.yourdomain.com`) instead of `IP:3000`, set up Nginx as a reverse proxy.
+---
 
-1.  **Install Nginx:**
-    ```bash
-    sudo apt update
-    sudo apt install nginx
-    ```
+## 🔐 Environment variables (`.env`)
 
-2.  **Create a config file:**
-    ```bash
-    sudo nano /etc/nginx/sites-available/mediater
-    ```
+| Variable | Required | Default | Notes |
+|---|---|---|---|
+| `NODE_ENV` | no | `development` | Set to `production` to enable tighter defaults |
+| `PORT` | no | `3000` | HTTP port |
+| `HOST` | no | `127.0.0.1` (dev) / `0.0.0.0` (prod) | Bind address |
+| `SESSION_SECRET` | **yes in prod** | _(random in dev)_ | Long random string. Generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
+| `SESSION_TTL_DAYS` | no | `30` | Session lifetime |
+| `COOKIE_SECURE` | no | `false` | Set `true` when serving over HTTPS |
+| `TRUST_PROXY` | no | `1` in prod | Trust this many proxy hops (Nginx, Cloudflare, etc.) |
+| `ADMIN_USERNAME` | no | `admin` | Bootstrap admin username |
+| `ADMIN_PASSWORD` | no | `admin123` | Bootstrap admin password — **change it** |
+| `DATABASE_URL` | no | `file:./dev.db` | Prisma SQLite path |
+| `UPLOAD_DIR` | no | `./public/uploads` | Override for Docker volumes |
+| `SESSION_DIR` | no | `./sessions` | Override for Docker volumes |
 
-3.  **Paste this configuration inside** (Change `server_name` to your domain):
+In **production**, if `SESSION_SECRET` is missing the server **refuses to start**.
+
+---
+
+## 🌐 Server deployment
+
+### 1) With Docker Compose behind Nginx
+
+```bash
+git clone https://github.com/Samuele98-git/Mediater.git /opt/mediater
+cd /opt/mediater
+cp .env.example .env
+# Edit .env — set SESSION_SECRET, ADMIN_PASSWORD, COOKIE_SECURE=true
+docker compose up -d
+```
+
+Then put Nginx in front (any web server works; example below):
 
 ```nginx
 server {
     listen 80;
-    server_name media.yourdomain.com; # <--- REPLACE WITH YOUR DOMAIN
-
-    # Max upload size for video files (e.g., 10GB)
+    server_name media.example.com;
     client_max_body_size 10000M;
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
     }
 }
 ```
 
-4.  **Enable the site and restart Nginx:**
+Enable HTTPS with `certbot --nginx -d media.example.com`, then set `COOKIE_SECURE=true` in `.env` and restart.
+
+### 2) With PM2 (no Docker)
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/mediater /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
+sudo npm install -g pm2
+cd /opt/mediater
+./scripts/setup.sh
+pm2 start ecosystem.config.cjs --env production
+pm2 startup           # follow the printed instructions
+pm2 save
 ```
+
+`pm2 logs mediater`, `pm2 restart mediater`, `pm2 stop mediater`.
+
+### 3) systemd (no PM2, no Docker)
+
+```ini
+# /etc/systemd/system/mediater.service
+[Unit]
+Description=Mediater
+After=network.target
+
+[Service]
+Type=simple
+User=mediater
+WorkingDirectory=/opt/mediater
+EnvironmentFile=/opt/mediater/.env
+ExecStart=/usr/bin/node /opt/mediater/server.js
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now mediater
+sudo journalctl -u mediater -f
+```
+
+---
+
+## 🧰 Safety checklist before going public
+
+- [ ] `SESSION_SECRET` set to a long random string.
+- [ ] `ADMIN_PASSWORD` changed from the default.
+- [ ] `NODE_ENV=production`.
+- [ ] HTTPS terminated by a reverse proxy, with `COOKIE_SECURE=true` and `TRUST_PROXY=1`.
+- [ ] `client_max_body_size` raised in your reverse proxy if you upload large videos.
+- [ ] Volumes / paths under `public/uploads`, `sessions/`, and the DB file backed up.
+- [ ] `/healthz` reachable from your orchestrator / uptime monitor.
+
+> 💡 The Docker image runs the app as the unprivileged `node` user, drops all kernel capabilities, applies `no-new-privileges`, and persists data in the named volume `mediater_data`.
+
+---
+
+## ⌨️ Player keyboard shortcuts
+
+| Key | Action |
+|---|---|
+| `Space` / `K` | Play / pause |
+| `J` / `←` | Back 5–10 s |
+| `L` / `→` | Forward 5–10 s |
+| `↑` / `↓` | Volume up / down |
+| `M` | Mute |
+| `F` | Fullscreen |
+| `Esc` | Exit search / close modal |
+
+The player also supports Picture-in-Picture, drag-seek on the progress bar, auto-resume from the last position, and auto-play of the next episode for series.
+
+---
+
+## 🔌 HTTP endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET`  | `/` | Browse (home, requires auth) |
+| `GET`  | `/movies` / `/series` / `/mylist` / `/search?q=` | Filtered browse |
+| `GET`  | `/watch/:id` | Player or series detail page |
+| `GET`  | `/stream/:id` | Range-aware video stream (206 Partial Content) |
+| `POST` | `/api/progress` | Save resume position (`{mediaId, position, duration}`) |
+| `POST` | `/api/mylist/:id` | Toggle a title in My List |
+| `GET`  | `/api/details/:id` | JSON payload for the detail modal |
+| `GET`  | `/healthz` | Liveness probe (`{"ok":true,"env":"production"}`) |
+| `GET`  | `/login` / `POST /auth/local` | Sign-in |
+| `GET`  | `/auth/sso` / `/auth/callback` | OIDC (when configured) |
+| `GET`  | `/logout` | Sign out and clear cookie |
+| `/admin/*` | (admin only) | Library, users, settings management |
 
 ---
 
 ## ⚙️ Configuration & Customization
 
-### Changing Branding (Theme)
-1.  Log in as Admin.
-2.  Go to **Dashboard** -> **Settings**.
-3.  Change **App Name** (e.g., "MyStream") and **Accent Color** (e.g., Gold, Blue).
-4.  Click **Save**. The interface updates immediately for all users.
+### Branding
+1. Log in as Admin → **Manage** → **Settings**.
+2. Set **App Name** and **Accent Color**.
 
-### Setting up Authentik / Keycloak (SSO)
-To enable the "Login with SSO" button on the login page:
-1.  Go to **Dashboard** -> **Settings**.
-2.  Enter your OIDC details provided by Authentik/Keycloak (Client ID, Secret, Issuer URL, etc.).
-3.  Save.
-4.  Logout. The login page will now show the SSO option automatically.
+### Authentik / Keycloak (SSO)
+1. **Manage** → **Settings** → fill OIDC fields.
+2. Log out — the login page now shows the SSO button.
 
 ---
 
 ## 📂 Project Structure
 
-* **`server.js`** - Main application entry point and configuration.
-* **`routes/`** - Logic split into modules (Auth, Admin, Profile, Views).
-* **`views/`** - EJS Templates (The HTML frontend).
-* **`public/uploads/`** - Where your uploaded images and videos are stored locally.
-* **`prisma/schema.prisma`** - Database structure configuration.
+```
+server.js                — entry point (env-driven, hardened)
+routes/                  — auth, admin, profile, views
+views/                   — EJS templates (Netflix-style)
+public/                  — static assets + uploads (volume in Docker)
+prisma/schema.prisma     — DB schema
+scripts/                 — setup.sh/ps1, start.sh/ps1
+Dockerfile               — multi-stage non-root image
+docker-compose.yml       — single-service stack with named volume
+ecosystem.config.cjs     — PM2 config
+Makefile                 — convenience targets
+.env.example             — copy to .env and fill in
+```
 
 ---
 
 ## 🛠 Troubleshooting
 
-**Problem: "Login Loop" (Keep getting logged out)**
-* Ensure you are accessing via `http://localhost:3000`.
-* If developing locally, ensure cookies are enabled. The app uses relaxed cookie security for localhost.
+**`SESSION_SECRET` error on startup** — set it in `.env` (production refuses to start without one).
 
-**Problem: "File too large" error during upload**
-* The internal limit is set to 5GB.
-* If using Nginx, ensure `client_max_body_size` is set correctly in the Nginx config (see Deployment section).
+**File too large during upload** — internal limit is 5 GB; if behind Nginx, raise `client_max_body_size`.
 
-**Problem: Database errors or Schema changes**
-* If you change the code significantly, delete the `dev.db` file and run `npx prisma db push` to reset the database cleanly.
+**Database errors after a schema change** — `npx prisma db push`, or `make migrate`.
 
----
+**Want to wipe everything and start fresh** — `make reset` (asks for confirmation).
+
+**Backup from Docker** — `docker compose exec mediater sh -c "tar czf - /data" > backup.tar.gz` snapshots the entire data volume (DB + uploads + sessions).
+
+**Existing admin can't log in after upgrading from 1.x** — old installs stored the admin password in plaintext; the new code only accepts bcrypt hashes. Re-hash it once with:
+```bash
+node -e "require('bcryptjs').hash('YOUR-NEW-PASSWORD',10).then(h=>require('@prisma/client').PrismaClient&&new(require('@prisma/client').PrismaClient)().user.update({where:{username:'admin'},data:{password:h}}).then(()=>console.log('done')))"
+```
+

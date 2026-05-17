@@ -1,0 +1,33 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Local runtime data — should live in a volume, not the image
+sessions
+data
+public/uploads
+*.db
+*.db-journal
+sessions.db
+
+# Tooling / docs not needed in the image
+Readme.md
+README.md
+imgxtx
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.log
+
+# Docker files (no need to copy themselves)
+Dockerfile
+docker-compose.yml
+.dockerignore
+Makefile
+ecosystem.config.cjs
+scripts

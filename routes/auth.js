@@ -16,14 +16,12 @@ passport.deserializeUser(async (id, d) => {
 
 // Local Strategy
 passport.use('local', new LocalStrategy(async (username, password, done) => {
-    const user = await prisma.user.findUnique({ where: { username } });
-    if (!user) return done(null, false, { message: 'User not found' });
-    
-    // Admin Master Key (Remove in production if needed)
-    if (user.username === 'admin' && password === 'admin123' && user.password === 'admin123') return done(null, user);
-    
-    if (user.password && await bcrypt.compare(password, user.password)) return done(null, user);
-    return done(null, false, { message: 'Invalid Password' });
+    try {
+        const user = await prisma.user.findUnique({ where: { username } });
+        if (!user || !user.password) return done(null, false, { message: 'Invalid credentials' });
+        if (await bcrypt.compare(password, user.password)) return done(null, user);
+        return done(null, false, { message: 'Invalid credentials' });
+    } catch (e) { return done(e); }
 }));
 
 // Dynamic SSO Strategy Loader
