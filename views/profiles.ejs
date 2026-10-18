@@ -12,7 +12,7 @@
             <% profiles.forEach(function (p) { %>
                 <li class="nf-gate-item">
                     <% if (manage) { %>
-                        <a href="/profiles/<%= p.id %>/edit" aria-label="<%= t('profiles.edit') %> <%= displayName(p) %>" <% if (p.pin) { %>data-lock="<%= p.id %>" data-mode="edit"<% } %>>
+                        <a href="/profiles/<%= p.id %>/edit" aria-label="<%= t('profiles.edit') %> <%= displayName(p) %>" <% if (p.pin && !(ownerActive && p.parentId)) { %>data-lock="<%= p.id %>" data-mode="edit" data-owner="<%= p.parentId ? 0 : 1 %>"<% } %>>
                             <span class="nf-gate-avatar"><img src="<%= avatarUrl(p) %>" alt=""><span class="nf-gate-edit"><i class="fa-solid fa-pencil"></i></span></span>
                             <span class="nf-gate-name"><%= displayName(p) %></span>
                             <% if (p.pin) { %><span class="nf-gate-lock" title="<%= t('profiles.locked') %>"><i class="fa-solid fa-lock"></i></span><% } %>
@@ -20,7 +20,7 @@
                     <% } else { %>
                         <form method="POST" action="/profiles/select/<%= p.id %>">
                             <input type="hidden" name="next" value="<%= next %>">
-                            <button type="submit" <% if (p.pin) { %>data-lock="<%= p.id %>" data-mode="select"<% } %>>
+                            <button type="submit" <% if (p.pin) { %>data-lock="<%= p.id %>" data-mode="select" data-owner="<%= p.parentId ? 0 : 1 %>"<% } %>>
                                 <span class="nf-gate-avatar"><img src="<%= avatarUrl(p) %>" alt=""><% if (p.isKids && avatarUrl(p) !== '/img/avatars/kids.svg') { %><span class="nf-gate-kids"><%= t('profiles.kids') %></span><% } %></span>
                                 <span class="nf-gate-name"><%= displayName(p) %></span>
                                 <% if (p.pin) { %><span class="nf-gate-lock" title="<%= t('profiles.locked') %>"><i class="fa-solid fa-lock"></i></span><% } %>
@@ -55,35 +55,29 @@
                 <% for (let i = 0; i < 4; i++) { %><input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN <%= i + 1 %>"><% } %>
             </div>
             <p class="nf-pin-error" id="nfPinError" role="alert" hidden></p>
-            <% if (hasPassword) { %>
-                <button type="button" class="nf-pin-forgot" id="nfPinForgot"><%= t('profiles.forgot_pin') %></button>
-                <form class="nf-pin-reset" id="nfPinReset" hidden>
-                    <p><%= t('profiles.reset_hint') %></p>
-                    <input type="password" name="password" placeholder="<%= t('profiles.account_password') %>" autocomplete="current-password" required>
-                    <button type="submit" class="nf-btn nf-btn-white"><%= t('profiles.reset_pin') %></button>
-                </form>
-            <% } %>
+            <button type="button" class="nf-pin-forgot" id="nfPinForgot"><%= t('profiles.forgot_pin') %></button>
+            <p class="nf-pin-help" id="nfPinHelp" hidden></p>
         </div>
     </div>
 
     <script>
     (function () {
-        var T = <%- jsonScript({ wrong: t('profiles.wrong_pin'), locked: t('profiles.too_many'), password: t('profiles.err_password') }) %>;
+        var T = <%- jsonScript({ wrong: t('profiles.wrong_pin'), locked: t('profiles.too_many'), forgotOwner: t('profiles.forgot_owner'), forgotFamily: t('profiles.forgot_family') }) %>;
         var NEXT = <%- jsonScript(next) %>;
         var OPEN = <%- jsonScript(openLock) %>;
         var MANAGE = <%- jsonScript(manage) %>;
         var modal = document.getElementById('nfPin');
         var inputs = Array.prototype.slice.call(document.querySelectorAll('#nfPinInputs input'));
         var err = document.getElementById('nfPinError');
-        var current = null, mode = 'select', busy = false;
+        var current = null, mode = 'select', busy = false, isOwner = false;
+        var help = document.getElementById('nfPinHelp');
 
-        function open(id, m) {
-            current = id; mode = m || 'select';
+        function open(id, m, owner) {
+            current = id; mode = m || 'select'; isOwner = !!owner;
             modal.hidden = false;
             inputs.forEach(function (i) { i.value = ''; });
             err.hidden = true;
-            var reset = document.getElementById('nfPinReset');
-            if (reset) reset.hidden = true;
+            help.hidden = true;
             setTimeout(function () { inputs[0].focus(); }, 30);
         }
         function close() { modal.hidden = true; current = null; }
@@ -127,21 +121,18 @@
             });
         });
         document.querySelectorAll('[data-lock]').forEach(function (el) {
-            el.addEventListener('click', function (e) { e.preventDefault(); open(el.getAttribute('data-lock'), el.getAttribute('data-mode')); });
+            el.addEventListener('click', function (e) { e.preventDefault(); open(el.getAttribute('data-lock'), el.getAttribute('data-mode'), el.getAttribute('data-owner') === '1'); });
         });
         modal.querySelector('.nf-pin-close').addEventListener('click', close);
-        var forgot = document.getElementById('nfPinForgot');
-        if (forgot) forgot.addEventListener('click', function () { document.getElementById('nfPinReset').hidden = false; document.querySelector('#nfPinReset input').focus(); });
-        var reset = document.getElementById('nfPinReset');
-        if (reset) reset.addEventListener('submit', function (e) {
-            e.preventDefault();
-            fetch('/profiles/' + current + '/reset-pin', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ password: reset.password.value }) })
-                .then(function (r) {
-                    if (!r.ok) { fail(T.password); return; }
-                    location.href = mode === 'edit' ? '/profiles/' + current + '/edit' : '/profiles?next=' + encodeURIComponent(NEXT);
-                });
+        // A forgotten PIN can't be removed from here (the sign-in may be shared): say who can.
+        document.getElementById('nfPinForgot').addEventListener('click', function () {
+            help.textContent = isOwner ? T.forgotOwner : T.forgotFamily;
+            help.hidden = false;
         });
-        if (OPEN != null) open(String(OPEN), MANAGE ? 'edit' : 'select');
+        if (OPEN != null) {
+            var opener = document.querySelector('[data-lock="' + OPEN + '"]');
+            open(String(OPEN), MANAGE ? 'edit' : 'select', opener && opener.getAttribute('data-owner') === '1');
+        }
     })();
     </script>
 </body>

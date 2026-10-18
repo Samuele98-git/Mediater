@@ -22,6 +22,23 @@
                 <button class="nf-btn nf-btn-red" type="button" id="dlAddBtn" <%= enabled ? '' : 'disabled' %>><i class="fa-solid fa-plus"></i> <%= t('downloads.add') %></button>
             </div>
         </div>
+        <form class="dl-search" id="dlSearch" role="search" autocomplete="off">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" id="dlSearchQ" maxlength="120" placeholder="<%= t('downloads.search_placeholder') %>" aria-label="<%= t('downloads.search') %>" <%= enabled && searchSources.length ? '' : 'disabled' %>>
+            <button type="submit" class="nf-btn nf-btn-white" <%= enabled && searchSources.length ? '' : 'disabled' %>><%= t('downloads.search') %></button>
+        </form>
+        <p class="dl-search-sources"><%= searchSources.length ? t('downloads.search_sources', { list: searchSources.join(' · ') }) : t('downloads.search_off') %>
+            <a href="/admin?tab=settings#search-sources"><%= t('downloads.search_settings') %></a></p>
+        <section class="dl-found" id="dlFound" hidden aria-live="polite">
+            <header>
+                <h2 id="dlFoundTitle"></h2>
+                <button type="button" class="x" id="dlFoundClose" aria-label="<%= t('common.close') %>"><i class="fa-solid fa-xmark"></i></button>
+            </header>
+            <div class="dl-found-list" id="dlFoundList"></div>
+            <button type="button" class="dl-found-more" id="dlFoundMore" hidden></button>
+            <p class="dl-found-note" id="dlFoundNote"></p>
+        </section>
+
         <div class="dl-disk" id="dlDisk">
             <div class="bar"><span></span></div>
             <small><span id="dlDiskText"></span><span id="dlDiskPath" title="<%= disk.path %>"></span></small>
@@ -77,6 +94,7 @@
                             <button type="button" data-kind="series"><i class="fa-solid fa-tv"></i> <%= t('downloads.kind_series') %></button>
                             <button type="button" data-kind="other"><i class="fa-regular fa-folder"></i> <%= t('downloads.kind_other') %></button>
                         </div>
+                        <div class="nf-alert err dl-danger" id="dlDanger" hidden><i class="fa-solid fa-skull-crossbones"></i><span></span></div>
                         <div class="dl-filelist" id="dlFiles"></div>
                         <label class="dl-toggle"><input type="checkbox" id="dlAutoImport" checked> <%= t('downloads.auto_import') %></label>
                     </section>
@@ -111,7 +129,7 @@
     <%- include('partials/tabbar', { pageType: 'downloads' }) %>
     <%- include('partials/overlays') %>
     <script>
-        window.__dl = <%- jsonScript({ i18n: dict.downloads || {}, disk: disk, initialMagnet: initialMagnet, tmdbOn: tmdbOn }) %>;
+        window.__dl = <%- jsonScript({ i18n: dict.downloads || {}, disk: disk, initialMagnet: initialMagnet, tmdbOn: tmdbOn, searchSources: searchSources }) %>;
     </script>
     <%- include('partials/scripts') %>
     <script src="/js/downloads.js?v=<%= assetVersion %>"></script>

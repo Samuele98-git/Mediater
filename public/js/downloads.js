@@ -266,6 +266,94 @@
         if (b) { filter = b.dataset.f; render(); }
     });
 
+    // ------------------------------------------------------------ search
+    // Results come back safest first; risky ones (fake or malware-looking) and dead
+    // ones (nobody sharing) stay hidden unless asked for.
+    const found = $('#dlFound');
+    const LEVEL_ICON = { safer: 'fa-shield-halved', ok: 'fa-shield', dead: 'fa-circle-minus', risky: 'fa-triangle-exclamation' };
+    const goodLevel = (h) => h.safety.level === 'safer' || h.safety.level === 'ok';
+    let hits = [], lastSearch = null, showAll = false, searchSeq = 0;
+    const ago = (d) => {
+        const t = Date.parse(d);
+        if (!t) return '';
+        const days = Math.max(0, Math.floor((Date.now() - t) / 86400000));
+        if (days < 1) return tr('today');
+        if (days < 60) return tr('days_ago', { n: days });
+        if (days < 730) return tr('months_ago', { n: Math.round(days / 30) });
+        return tr('years_ago', { n: Math.round(days / 365) });
+    };
+    function hitHtml(h, i) {
+        const lvl = h.safety.level;
+        const meta = [
+            `<span class="src">${esc(h.source)}</span>`,
+            h.size ? `<span>${h.sizeIsMax ? '≤ ' : ''}${fmtBytes(h.size)}</span>` : '',
+            h.seeders != null ? `<span class="seeds ${h.seeders >= 25 ? 'good' : h.seeders < 5 ? 'low' : ''}"><i class="fa-solid fa-arrow-up"></i> ${esc(tr(h.seeders === 1 ? 'seeder_one' : 'seeders', { n: h.seeders }))}</span>` : '',
+            h.downloads ? `<span>${esc(tr('archive_downloads', { n: Number(h.downloads).toLocaleString() }))}</span>` : '',
+            h.quality ? `<span class="q">${esc(h.quality)}</span>` : '',
+            h.codec ? `<span class="q">${esc(h.codec)}</span>` : '',
+            h.hdr ? '<span class="q">HDR</span>' : '',
+            h.pubDate ? `<span>${esc(ago(h.pubDate))}</span>` : '',
+            h.license ? `<span class="free"><i class="fa-solid fa-scale-balanced"></i> ${esc(tr(h.license === 'cc' ? 'license_cc' : 'license_pd'))}</span>` : ''
+        ].filter(Boolean).join('');
+        const why = h.safety.reasons.map(k => tr('why_' + k)).join(' · ');
+        return `<article class="dl-hit ${lvl}">
+            <span class="dl-safety ${lvl}"><i class="fa-solid ${LEVEL_ICON[lvl] || 'fa-shield'}"></i> ${esc(tr('level_' + lvl))}</span>
+            <div class="dl-hit-main">
+                <div class="dl-hit-title" title="${esc(h.title)}">${esc(h.title)}</div>
+                <div class="dl-hit-meta">${meta}</div>
+                ${why ? `<div class="dl-hit-why">${esc(why)}</div>` : ''}
+            </div>
+            <div class="dl-hit-actions">
+                ${h.page ? `<a class="nf-circle" href="${esc(h.page)}" target="_blank" rel="noopener noreferrer" data-tip="${esc(tr('open_page'))}"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>` : ''}
+                <button type="button" class="nf-btn ${lvl === 'risky' ? '' : 'nf-btn-red'} nf-btn-sm" data-hit="${i}"><i class="fa-solid fa-download"></i> ${esc(tr('get'))}</button>
+            </div>
+        </article>`;
+    }
+    function renderHits() {
+        const r = lastSearch || {};
+        const visible = hits.filter(h => showAll || goodLevel(h));
+        const hidden = hits.filter(h => !goodLevel(h)).length;
+        $('#dlFoundTitle').textContent = tr('results_for', { q: r.query || '' });
+        $('#dlFoundList').innerHTML = visible.length
+            ? visible.map(h => hitHtml(h, hits.indexOf(h))).join('')
+            : `<p class="dl-found-empty">${esc(tr(hits.length ? 'only_risky' : 'no_results'))}</p>`;
+        const more = $('#dlFoundMore');
+        more.hidden = !hidden;
+        more.textContent = showAll ? tr('hide_risky') : tr('show_risky', { n: hidden });
+        const notes = (r.errors || []).map(e => tr('source_error', { source: e.source, error: e.error }));
+        if ((r.sources || []).length === 1 && r.sources[0] === 'Internet Archive') notes.push(tr('archive_only_hint'));
+        $('#dlFoundNote').textContent = notes.join(' ');
+    }
+    $('#dlSearch').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const q = $('#dlSearchQ').value.trim();
+        if (q.length < 2) { $('#dlSearchQ').focus(); return; }
+        const my = ++searchSeq;
+        showAll = false;
+        found.hidden = false;
+        $('#dlFoundTitle').textContent = tr('searching', { q });
+        $('#dlFoundList').innerHTML = '<div class="dl-found-wait"><div class="nf-spinner"></div></div>';
+        $('#dlFoundMore').hidden = true;
+        $('#dlFoundNote').textContent = '';
+        try {
+            const r = await api('/api/torrents/search?q=' + encodeURIComponent(q));
+            if (my !== searchSeq) return;
+            lastSearch = r;
+            hits = r.results || [];
+            renderHits();
+        } catch (err) {
+            if (my === searchSeq) $('#dlFoundList').innerHTML = `<p class="dl-found-empty">${esc(err.message)}</p>`;
+        }
+    });
+    $('#dlFoundList').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-hit]');
+        const h = b && hits[Number(b.dataset.hit)];
+        // → review: files, preview, safety check (with what the listing claimed, to catch fakes)
+        if (h) openAdd({ magnet: h.link, auto: true, hint: { ...(h.hint || {}), claimedSize: h.sizeIsMax ? null : h.size } });
+    });
+    $('#dlFoundMore').addEventListener('click', () => { showAll = !showAll; renderHits(); });
+    $('#dlFoundClose').addEventListener('click', () => { found.hidden = true; searchSeq++; });
+
     // ------------------------------------------------------------ remove dialog
     const rm = $('#dlRemoveModal');
     let rmId = null;
@@ -299,8 +387,8 @@
         $('#dlFooterInfo').textContent = '';
         if (ctx) ctx.step = name;
     }
-    function openAdd({ magnet = '', file = null, resumeId = null, auto = false } = {}) {
-        ctx = { step: 'source', id: null, file, stopped: false };
+    function openAdd({ magnet = '', file = null, resumeId = null, auto = false, hint = null } = {}) {
+        ctx = { step: 'source', id: null, file, stopped: false, hint };
         $('#dlMagnet').value = magnet || $('#dlMagnet').value || '';
         $('#dlFileLabel').textContent = file ? file.name : tr('choose_file');
         $('#dlFilePick').classList.toggle('has', !!file);
@@ -410,6 +498,8 @@
         ctx.match = ctx.results[0] || null;
         ctx.tmdbOn = s.tmdbOn;
         ctx.parsed = s.parsed || {};
+        // From a search result: its real title beats the torrent's file name.
+        if (ctx.hint && ctx.hint.title) ctx.parsed = { ...ctx.parsed, title: ctx.hint.title, year: ctx.hint.year || ctx.parsed.year };
         ctx.query = s.query || '';
         ctx.selected = new Set(s.defaultFiles && s.defaultFiles.length ? s.defaultFiles : d.files.map(f => f.index));
         showStep('preview');
@@ -425,11 +515,25 @@
             + (vids ? `<span>${esc(tr('videos_count', { n: vids }))}</span>` : '') + (subs ? `<span>${esc(tr('subs_count', { n: subs }))}</span>` : '')
             + `<span>${esc(peersText(d.peers))}</span>`;
         $$('#dlKinds button').forEach(b => b.classList.toggle('on', b.dataset.kind === ctx.kind));
+        // Program files (.exe…) in a "movie" are the classic malware trap: warn, and never download them.
+        for (const f of d.files) if (f.program) ctx.selected.delete(f.index);
+        // (the Internet Archive ships speech-to-text transcripts as "*.asr.js": skipped too, but no alarm)
+        const programs = d.files.filter(f => f.program && !/\.asr\.js$/i.test(f.name));
+        const warnings = [];
+        if (programs.length) warnings.push(tr('program_files', { files: programs.slice(0, 3).map(f => f.name).join(', ') + (programs.length > 3 ? '…' : '') }));
+        // Fakes often lie about their size in search listings.
+        const claimed = ctx.hint && ctx.hint.claimedSize;
+        if (claimed && d.totalSize && (d.totalSize < claimed / 4 || d.totalSize > claimed * 4)) {
+            warnings.push(tr('size_mismatch', { claimed: fmtBytes(claimed), real: fmtBytes(d.totalSize) }));
+        }
+        const danger = $('#dlDanger');
+        danger.hidden = !warnings.length;
+        danger.querySelector('span').textContent = warnings.join(' ');
         const files = [...d.files].sort((a, b) => (b.video - a.video) || (b.subtitle - a.subtitle) || a.path.localeCompare(b.path, undefined, { numeric: true }));
         $('#dlFiles').innerHTML = files.map(f => `
-            <label class="dl-fileopt">
-                <input type="checkbox" data-file="${f.index}" ${ctx.selected.has(f.index) ? 'checked' : ''}>
-                <span class="fname" title="${esc(f.path)}"><i class="fa-solid ${fileIcon(f.name)}"></i>${esc(f.name)}${f.sample ? `<em>${esc(tr('sample'))}</em>` : ''}</span>
+            <label class="dl-fileopt${f.program ? ' program' : ''}">
+                <input type="checkbox" data-file="${f.index}" ${ctx.selected.has(f.index) ? 'checked' : ''} ${f.program ? 'disabled' : ''}>
+                <span class="fname" title="${esc(f.path)}"><i class="fa-solid ${f.program ? 'fa-skull-crossbones' : fileIcon(f.name)}"></i>${esc(f.name)}${f.sample ? `<em>${esc(tr('sample'))}</em>` : ''}${f.program ? `<em class="danger">${esc(tr('program'))}</em>` : ''}</span>
                 <span class="size">${fmtBytes(f.length)}</span>
                 ${f.video ? `<button type="button" data-preview="${f.index}" title="${esc(tr('preview'))}"><i class="fa-solid fa-play"></i></button>` : '<span></span>'}
             </label>`).join('');
@@ -531,7 +635,8 @@
             files: [...ctx.selected],
             kind: ctx.kind,
             autoImport: ctx.kind !== 'other' && $('#dlAutoImport').checked,
-            match: ctx.match ? { tmdbId: ctx.match.tmdbId, type: ctx.match.type, title: ctx.match.title, year: ctx.match.year, poster: ctx.match.poster } : null
+            match: ctx.match ? { tmdbId: ctx.match.tmdbId, type: ctx.match.type, title: ctx.match.title, year: ctx.match.year, poster: ctx.match.poster }
+                : (ctx.hint && ctx.hint.title ? { title: ctx.parsed.title, year: ctx.parsed.year || null } : null)
         };
         return api(`/api/torrents/${ctx.d.id}/start`, { method: 'POST', body: JSON.stringify(body) });
     }

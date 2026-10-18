@@ -27,7 +27,7 @@
 ## ✨ Features
 
 **Feels like Netflix**
-* **"Who's watching?" profiles** — up to 5 per account, each with its own Continue Watching, My List, ratings and recommendations. **Kids profiles** only see kid-rated titles. **Profile Lock**: any profile can require a 4-digit PIN.
+* **"Who's watching?" profiles** — up to 5 per account, each with its own Continue Watching, My List, ratings and recommendations. **Kids profiles** only see kid-rated titles. **Profile Lock**: any profile can require a 4-digit PIN. One sign-in can be shared: *Who's watching?* comes first after every sign-in (and whenever the browser is reopened), so nobody ends up in the admin's profile without its PIN. Knowing the account password doesn't get around a PIN: only the account owner can remove family members' PINs (from their own profile), the admin's own PIN can only be reset on the server, account settings open only from the owner's profile, and wrong PINs lock that profile on that device for longer and longer.
 * **Billboard** with the title logo, Top 10 rank and a muted **video preview** that starts after a few seconds.
 * **Rows** — Continue Watching, *Top 10 Movies / TV Shows Today* (with the big outlined numbers), Trending, New on Mediater, *Because you watched…*, genres, Critically Acclaimed, Watch It Again.
 * **Hover cards** that grow out of the poster and play a preview, with Play, My List, 👍 ratings (*Not for me / I like this / Love this!*) and *% Match*.
@@ -42,6 +42,7 @@
 
 **Built-in torrent client — download only** (admin)
 * **Never uploads or shares**: peers are never sent any data, not even the file list. When a download finishes, Mediater disconnects from the swarm, the title moves into the library and the download leaves the list.
+* **Search** for something to download, safest results first: the built-in source is the **Internet Archive** (free, legal public-domain and Creative Commons films and TV); you can also connect **Jackett or Prowlarr**. Torrents that look fake or dangerous are hidden, and program files (`.exe`…) are never downloaded.
 * Add a **magnet link, a .torrent file or URL** — or drag & drop / paste it anywhere on the Downloads page.
 * **Preview before downloading**: see the file list, pick files, play any video instantly.
 * **Stream while downloading** — the admin sees the title right away with a progress badge.
@@ -68,6 +69,8 @@
 | *"Who's watching?" — Giulia's profile is locked* | *Profile Lock PIN* |
 | ![Downloads](docs/screenshots/downloads.jpg) | ![Review a download](docs/screenshots/download-review.jpg) |
 | *Downloads (admin) — download only* | *Review: pick files, preview, TMDB match* |
+| ![Search](docs/screenshots/download-search.jpg) | |
+| *Search — safest first (here: the Internet Archive)* | |
 
 <p align="center">
   <img src="docs/screenshots/phone-home.jpg" alt="Phone home" width="260">
@@ -148,10 +151,27 @@ Coming from an earlier 3.0 build that kept finished torrents **seeding**: on the
 
 ## 🧲 Downloading with torrents
 
-1. Open **Downloads** (top bar — only on the admin's own profile) → **Add torrent**.
-2. Paste a magnet link (or a `.torrent` URL / info hash), or drop a `.torrent` file.
+1. Open **Downloads** (top bar — only on the admin's own profile).
+2. **Search** for a title and press *Download* on a result — or use **Add torrent** to paste a magnet link (or a `.torrent` URL / info hash), or drop a `.torrent` file.
 3. Review: choose **Movie**, **TV show** or **Just download**, untick files you don't want, check the TMDB match. Press ▶ next to any video to **preview it without downloading everything**.
 4. **Download** — or **Stream now** to start watching immediately.
+
+### Search
+
+Type a title in the search box at the top of **Downloads**. Results come back **safest first**:
+
+| Rating | Meaning |
+|---|---|
+| 🟢 **Safer** | An official source (the Internet Archive), or a well-seeded torrent with a proper release name |
+| ⚪ **OK** | Looks normal, but few people share it (slower, and fakes often look like this) |
+| ⚫ **Dead** | Nobody is sharing it — hidden |
+| 🔴 **Risky** | A program (`.exe`…) or an archive in the name, crack/installer keywords, or far too small for a movie — hidden |
+
+Hidden results are one click away (*Show N hidden results*), each with the reason. **Download** opens the usual review, which double-checks the real file list: program files are flagged as probable malware and are never downloaded (the server refuses them too), and you're warned when the torrent's real size doesn't match what the listing claimed.
+
+Sources (Settings → **Torrent search**):
+* **Internet Archive** (on by default) — public-domain and Creative Commons films, cartoons and TV from its curated collections. Every item is an official torrent with archive.org itself as a web seed, so it downloads fast even with no peers. When an item comes in several versions (1080p, DVD, phone copies…), only the best one is pre-selected. A title already in your library (for example a poster without a video) gets the video instead of a duplicate.
+* **Jackett / Prowlarr** (optional) — paste their Torznab feed URLs (one per line, e.g. `http://localhost:9117/api/v2.0/indexers/all/results/torznab/`) and the API key. Mediater has no built-in scrapers for other sites: it only searches what you connect, so only add indexers you trust.
 
 **Download only.** Mediater never uploads: other peers are never unchoked, piece requests are refused, it doesn't advertise the pieces it has and it won't even hand out the torrent's file list. When a movie or show finishes, Mediater disconnects from the swarm, adds it to the library and removes it from the Downloads list — the files stay on disk and play from there. *Just download* items stay listed as *Completed* (also disconnected) so you can find or delete their files.
 
@@ -186,6 +206,7 @@ make setup           # first-time setup
 make dev             # development mode
 make start           # production mode (foreground)
 make migrate         # apply the database schema
+make reset-pin       # forgot the admin profile's PIN? removes it (or: npm run reset-pin)
 make pm2-start       # run under PM2
 make docker-up       # start Docker stack
 make docker-logs     # tail container logs
@@ -204,7 +225,7 @@ make backup          # snapshot the DB, uploads and app data (not downloads) int
 | `SESSION_SECRET` | **yes in prod** | _(random in dev)_ | Long random string |
 | `SESSION_TTL_DAYS` | no | `30` | Session lifetime |
 | `COOKIE_SECURE` | no | `false` | `true` when serving over HTTPS |
-| `TRUST_PROXY` | no | `1` in prod | Proxy hops to trust (Nginx, Cloudflare…) |
+| `TRUST_PROXY` | no | `1` in prod | Proxy hops to trust (Nginx, Cloudflare…). Use `0` when nothing sits in front, or the wrong-PIN limit can be dodged |
 | `PUBLIC_URL` | no | — | Public address, used for SSO callbacks |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | no | `admin` / `admin123` | Bootstrap admin — **change it** |
 | `DATABASE_URL` | no | `file:./dev.db` | SQLite path (relative to `prisma/`) |
@@ -300,7 +321,7 @@ WantedBy=multi-user.target
 - [ ] HTTPS terminated by a reverse proxy, with `COOKIE_SECURE=true` and `TRUST_PROXY=1`.
 - [ ] `client_max_body_size` raised and `proxy_buffering off` in your reverse proxy.
 - [ ] The database, `public/uploads` and `data/` (or the Docker volume) backed up.
-- [ ] Only the admin's own profile can download torrents and manage the library — keep other accounts as *Viewer*, and give your profile a PIN (Profile Lock) if others use your account.
+- [ ] Only the admin's own profile can download torrents and manage the library — keep other accounts as *Viewer*. Everyone who signs in picks a profile first, so if others share your sign-in, give your profile a PIN (Profile Lock — Mediater reminds you in Manage library until you do).
 
 ---
 
@@ -340,6 +361,7 @@ After three episodes that started on their own, the player asks *Are you still w
 | `GET` | `/api/titles/:id` | Details modal data |
 | `POST` | `/api/mylist/:id` · `/api/rate/:id` · `/api/progress` | My List, thumbs, resume position |
 | `GET` | `/downloads` | Torrent manager (admin) |
+| `GET` | `/api/torrents/search?q=` | Search the configured sources, safest first (admin) |
 | `POST` | `/api/torrents` | Add magnet / .torrent / URL (admin) |
 | `GET` | `/api/torrents/events` | Live stats (Server-Sent Events) |
 | `POST` | `/api/torrents/:id/start` · `pause` · `resume` · `match` | Torrent control (admin) |
@@ -377,6 +399,12 @@ Dockerfile, docker-compose.yml, ecosystem.config.cjs, Makefile
 **Torrent stuck on "Fetching info"** — the torrent has no reachable peers. Try another source, or keep it running in the background; it starts as soon as a peer appears.
 
 **Slow downloads** — set `TORRENT_PORT` and forward it (TCP + UDP) on your router. Because Mediater never uploads, peers that favour people who share back may send it less; well-seeded torrents download at full speed.
+
+**Search finds nothing** — the built-in source, the Internet Archive, only has free public-domain and Creative Commons titles. Connect Jackett or Prowlarr in Settings → Torrent search to look elsewhere.
+
+**I'm asked "Who's watching?" again** — that's on purpose after signing in and after the browser was closed, so a shared sign-in never opens straight into the admin's profile.
+
+**Forgot a PIN** — a family member's: the account owner removes it from their own profile (Manage Profiles → that profile → Profile Lock). The admin's own: run `npm run reset-pin` on the server (Docker: `docker compose exec mediater npm run reset-pin`).
 
 **`[torrents] uTP unavailable … continuing over TCP`** (Windows) — harmless: Windows reserved that UDP port; downloads continue over TCP.
 

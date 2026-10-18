@@ -11,7 +11,7 @@ COMPOSE ?= docker compose
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install setup dev start migrate generate prisma-studio \
+.PHONY: help install setup dev start migrate reset-pin generate prisma-studio \
         pm2-start pm2-stop pm2-restart pm2-logs pm2-status \
         docker-build docker-up docker-down docker-logs docker-restart docker-shell \
         backup restore clean reset
@@ -40,6 +40,9 @@ start: ## Start in production mode (foreground)
 
 migrate: ## Apply Prisma schema to the database
 	$(NODE) scripts/migrate.mjs
+
+reset-pin: ## Remove the admin profile's PIN (if you forgot it)
+	$(NODE) scripts/reset-pin.mjs
 
 generate: ## Regenerate the Prisma client
 	npx prisma generate

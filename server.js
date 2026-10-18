@@ -7,7 +7,7 @@ import crypto from 'crypto';
 import http from 'http';
 import path from 'path';
 import {
-    NODE_ENV, IS_PROD, PORT, HOST, ROOT, PUBLIC_DIR, UPLOAD_DIR, ensureDirs
+    NODE_ENV, IS_PROD, PORT, HOST, ROOT, PUBLIC_DIR, UPLOAD_DIR, COOKIE_SECURE, ensureDirs
 } from './lib/config.js';
 import prisma, { tuneDatabase } from './lib/prisma.js';
 import PrismaSessionStore from './lib/session-store.js';
@@ -30,7 +30,6 @@ import accountRoutes from './routes/profile.js';
 
 const app = express();
 const TRUST_PROXY = process.env.TRUST_PROXY || (IS_PROD ? '1' : '');
-const COOKIE_SECURE = (process.env.COOKIE_SECURE || '').toLowerCase() === 'true';
 const SESSION_TTL = parseInt(process.env.SESSION_TTL_DAYS || '30', 10) * 24 * 60 * 60;
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
@@ -185,6 +184,15 @@ function startInternalServer() {
 
 // A stray rejected promise must never take the whole server down.
 process.on('unhandledRejection', (err) => console.error('[unhandled]', (err && err.stack) || err));
+// Peer-connection libraries can report an error after a connection was already
+// dropped; that's harmless. Anything else is a real bug: log it and exit so the
+// process manager (PM2, systemd, Docker) restarts the server cleanly.
+const PEER_ERRORS = /^ERR_(DATA_CHANNEL|ICE_CONNECTION_FAILURE|CONNECTION_FAILURE|SIGNALING|WEBRTC_SUPPORT|SET_LOCAL_DESCRIPTION|SET_REMOTE_DESCRIPTION|CREATE_OFFER|CREATE_ANSWER|ADD_ICE_CANDIDATE)$/;
+process.on('uncaughtException', (err) => {
+    const harmless = !!err && (PEER_ERRORS.test(String(err.code || '')) || err.name === 'RTCError');
+    console.error(harmless ? '[peer] ignored a dropped connection error:' : '[FATAL] uncaught exception:', (err && err.stack) || err);
+    if (!harmless) process.exit(1);
+});
 
 async function initAdmin() {
     const existing = await prisma.user.findUnique({ where: { username: ADMIN_USERNAME } });

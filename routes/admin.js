@@ -317,11 +317,16 @@ router.post('/settings/update', page(async (req, res) => {
     const body = { ...req.body };
     // Keep stored secrets when the field is left blank.
     const current = await getSettings();
-    for (const k of ['OIDC_CLIENT_SECRET', 'TMDB_API_KEY']) {
+    for (const k of ['OIDC_CLIENT_SECRET', 'TMDB_API_KEY', 'TORZNAB_API_KEY']) {
         if (body[k] !== undefined && !str(body[k]) && current[k] && body[k + '_CLEAR'] !== 'on') delete body[k];
         delete body[k + '_CLEAR'];
     }
     if (body.TRICKPLAY === undefined && body._form === 'playback') body.TRICKPLAY = 'false';
+    if (body._form === 'search') {
+        if (body.SEARCH_ARCHIVE === undefined) body.SEARCH_ARCHIVE = 'false';
+        // one http(s) feed per line
+        if (body.TORZNAB_URLS !== undefined) body.TORZNAB_URLS = String(body.TORZNAB_URLS).split(/\r?\n/).map(s => s.trim()).filter(s => /^https?:\/\/\S+$/i.test(s)).slice(0, 20).join('\n');
+    }
     delete body._form;
     await saveSettings(body);
     res.redirect('/admin?tab=settings&flash=saved');

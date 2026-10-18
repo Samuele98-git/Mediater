@@ -19,10 +19,38 @@ export function avatarUrl(u) {
     return `/img/avatars/avatar-${(u.id % 8) + 1}.svg`;
 }
 
-/** True when "Who's watching?" must be shown first (several profiles, or a locked one). */
+// The profile picked on "Who's watching?" is remembered for this browser session
+// only: a cookie without expiry carries a token that must match the session.
+export const PROFILE_COOKIE = 'mediater.pf';
+
+export function readCookie(req, name) {
+    for (const part of String(req.headers.cookie || '').split(';')) {
+        const i = part.indexOf('=');
+        if (i > 0 && part.slice(0, i).trim() === name) {
+            try { return decodeURIComponent(part.slice(i + 1).trim()); } catch { return null; }
+        }
+    }
+    return null;
+}
+
+/** A profile was picked on "Who's watching?" (with its PIN, if it has one) in this browser session. */
+export function profileChosen(req) {
+    const s = req.session;
+    return !!(s && s.profileChosen && s.profileToken && readCookie(req, PROFILE_COOKIE) === s.profileToken);
+}
+
+/** The account's own main profile is in use (picked — with its PIN, if it has one — in this browser). */
+export function ownerProfileActive(req) {
+    return !!(req.user && !req.user.parentId && profileChosen(req) && req.session.profileId === req.user.id);
+}
+
+/**
+ * "Who's watching?" comes first after every sign-in and whenever the browser is
+ * reopened — even with a single profile — so nobody lands in the admin's profile
+ * without picking it (and typing its PIN, if it has one).
+ */
 export function needsProfileGate(req) {
-    if (req.session.profileChosen) return false;
-    return (req.profiles && req.profiles.length > 1) || !!(req.profile && req.profile.pin);
+    return !profileChosen(req);
 }
 
 /**
@@ -52,6 +80,7 @@ async function resolveProfile(req, res) {
     res.locals.profiles = all;
     res.locals.isKids = !!active.isKids;
     res.locals.canAdmin = ownerAdmin(req);
+    res.locals.isOwnerProfile = ownerProfileActive(req);
 }
 
 /** Resolves the active "Who's watching?" profile for this session. */
@@ -99,8 +128,9 @@ export async function streamViewer(req, res, next) {
             const sub = await prisma.user.findUnique({ where: { id: pid }, select: { id: true, parentId: true, isKids: true } });
             if (sub && sub.parentId === u.id) p = sub;
         }
-        const ownerUnlocked = !u.pin || (req.session.profileChosen && p.id === u.id);
-        req.viewer = { kids: !!p.isKids, admin: u.role === 'admin' && p.id === u.id && !u.isKids && ownerUnlocked };
+        // Admin rights only once the admin's own profile was picked (and unlocked) in this browser.
+        const chosen = profileChosen(req);
+        req.viewer = { kids: !!p.isKids, admin: chosen && u.role === 'admin' && p.id === u.id && !u.isKids };
         next();
     } catch (e) { next(e); }
 }

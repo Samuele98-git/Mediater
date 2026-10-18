@@ -3,12 +3,13 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../lib/prisma.js';
 import { avatarUpload, uploadPath, discardUpload } from '../middleware/upload.js';
-import { isAuth } from '../middleware/auth.js';
+import { isAuth, ownerProfileActive } from '../middleware/auth.js';
 
 const router = express.Router();
 router.use(isAuth);
-// Kids profiles can't open account settings (like Netflix).
-router.use((req, res, next) => (req.profile && req.profile.isKids ? res.redirect('/') : next()));
+// Account settings (sign-in name and password) belong to the account's own main
+// profile: when several people share one sign-in, nobody else can change them.
+router.use((req, res, next) => (ownerProfileActive(req) ? next() : res.redirect('/')));
 
 router.get('/', (req, res, next) => {
     prisma.user.count({ where: { parentId: req.user.id } }).then(profiles => res.render('account', {

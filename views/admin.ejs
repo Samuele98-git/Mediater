@@ -26,6 +26,11 @@
 </nav>
 
 <main class="adm-main" data-tab="<%= tab %>">
+    <% if (!profile || !profile.pin) { %>
+        <div class="nf-alert err adm-pin-nudge"><i class="fa-solid fa-lock-open"></i>
+            <span><%= t('admin.pin_nudge') %> <a href="/profiles/<%= user.id %>/edit#nfLock" style="color:#fff;text-decoration:underline;font-weight:700"><%= t('admin.pin_nudge_action') %></a></span>
+        </div>
+    <% } %>
     <% if (flash) { %>
         <div class="nf-alert <%= ['taken', 'missing'].includes(flash) ? 'err' : 'ok' %> adm-flash"><i class="fa-solid fa-circle-info"></i> <%= t('admin.flash_' + flash) %></div>
     <% } %>
@@ -158,6 +163,21 @@
             </div>
             <p class="adm-hint" style="margin-top:.8rem"><i class="fa-solid fa-shield-halved"></i> <%= t('admin.download_only_hint') %></p>
             <p class="adm-hint"><%= t('admin.torrents_hint') %></p>
+            <div class="adm-actions"><button class="nf-btn nf-btn-red nf-btn-sm" type="submit"><i class="fa-solid fa-floppy-disk"></i> <%= t('admin.save_apply') %></button></div>
+        </form>
+
+        <form action="/admin/settings/update" method="POST" class="adm-card" id="search-sources">
+            <input type="hidden" name="_form" value="search">
+            <h2><i class="fa-solid fa-magnifying-glass"></i> <%= t('admin.search_title') %></h2>
+            <label class="adm-check"><input type="checkbox" name="SEARCH_ARCHIVE" value="true" <%= config.SEARCH_ARCHIVE !== 'false' ? 'checked' : '' %>> <span><%= t('admin.search_archive') %></span></label>
+            <div class="adm-grid g2" style="margin-top:1rem">
+                <div class="adm-field"><label><%= t('admin.search_torznab') %></label>
+                    <textarea name="TORZNAB_URLS" rows="3" spellcheck="false" placeholder="http://localhost:9117/api/v2.0/indexers/all/results/torznab/&#10;http://localhost:9696/1/api"><%= config.TORZNAB_URLS || '' %></textarea></div>
+                <div class="adm-field"><label><%= t('admin.search_apikey') %> <% if (config.TORZNAB_API_KEY) { %><span class="adm-pill ok"><%= t('admin.configured') %></span><% } %></label>
+                    <input type="password" name="TORZNAB_API_KEY" placeholder="<%= config.TORZNAB_API_KEY ? '••••••••••••' : '' %>" autocomplete="off"></div>
+            </div>
+            <% if (config.TORZNAB_API_KEY) { %><label class="adm-check" style="margin-top:.6rem"><input type="checkbox" name="TORZNAB_API_KEY_CLEAR"> <%= t('admin.remove_key') %></label><% } %>
+            <p class="adm-hint" style="margin-top:.8rem"><%= t('admin.search_hint') %></p>
             <div class="adm-actions"><button class="nf-btn nf-btn-red nf-btn-sm" type="submit"><i class="fa-solid fa-floppy-disk"></i> <%= t('admin.save_apply') %></button></div>
         </form>
 

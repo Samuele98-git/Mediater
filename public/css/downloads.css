@@ -9,6 +9,51 @@
 .dl-summary i { color: #808080; margin-right: .3rem; }
 .dl-note { color: #8c8c8c; font-size: .82rem; margin: .55rem 0 0; max-width: 46rem; line-height: 1.45; }
 .dl-note i { color: var(--nf-green); margin-right: .35rem; }
+
+/* search */
+.dl-search { display: flex; align-items: center; gap: .7rem; background: #1f1f1f; border: 1px solid #3a3a3a; border-radius: 4px; padding: .35rem .35rem .35rem 1rem; margin: .2rem 0 .45rem; }
+.dl-search:focus-within { border-color: #a3a3a3; }
+.dl-search > i { color: #8c8c8c; }
+.dl-search input { flex: 1; min-width: 0; background: transparent; border: 0; color: #fff; font-size: 1rem; padding: .55rem 0; outline: none; }
+.dl-search input::placeholder { color: #808080; }
+.dl-search .nf-btn { padding: .5rem 1.2rem; }
+.dl-search-sources { color: #808080; font-size: .8rem; margin: 0 0 1.3rem; }
+.dl-search-sources a { color: #b3b3b3; text-decoration: underline; margin-left: .35rem; }
+.dl-found { background: #181818; border: 1px solid #2a2a2a; border-radius: 6px; padding: .9rem 1.2rem 1.1rem; margin: 0 0 1.6rem; }
+.dl-found header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .3rem; }
+.dl-found h2 { font-size: 1.15rem; margin: 0; }
+.dl-found .x { background: none; border: 0; color: #b3b3b3; font-size: 1.25rem; padding: .2rem .4rem; }
+.dl-found .x:hover { color: #fff; }
+.dl-found-list { display: flex; flex-direction: column; }
+.dl-hit { display: grid; grid-template-columns: 7.4rem minmax(0, 1fr) auto; gap: 1rem; align-items: center; padding: .85rem 0; border-top: 1px solid #262626; }
+.dl-hit:first-child { border-top: 0; }
+.dl-hit.risky .dl-hit-title, .dl-hit.dead .dl-hit-title { color: #a3a3a3; }
+.dl-safety { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; font-size: .74rem; font-weight: 700; padding: .38rem .5rem; border-radius: 3px; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+.dl-safety.safer { background: rgba(70, 211, 105, .15); color: var(--nf-green); }
+.dl-safety.ok { background: rgba(255, 255, 255, .08); color: #d2d2d2; }
+.dl-safety.dead { background: rgba(255, 255, 255, .05); color: #8c8c8c; }
+.dl-safety.risky { background: rgba(229, 9, 20, .18); color: #ff6b72; }
+.dl-hit-main { min-width: 0; }
+.dl-hit-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dl-hit-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .9rem; color: #a3a3a3; font-size: .82rem; margin-top: .3rem; }
+.dl-hit-meta .src { color: #e5e5e5; font-weight: 600; }
+.dl-hit-meta .q { border: 1px solid #555; border-radius: 3px; padding: 0 .35em; font-size: .72rem; line-height: 1.5; color: #d2d2d2; }
+.dl-hit-meta .seeds.good, .dl-hit-meta .free { color: var(--nf-green); }
+.dl-hit-meta .seeds.low { color: #f0a24a; }
+.dl-hit-why { color: #808080; font-size: .78rem; margin-top: .25rem; }
+.dl-hit.risky .dl-hit-why { color: #ff8a8f; }
+.dl-hit-actions { display: flex; gap: .5rem; align-items: center; }
+.dl-hit-actions .nf-circle { width: 34px; height: 34px; font-size: .8rem; border-width: 1px; }
+.dl-found-more { background: none; border: 0; color: #b3b3b3; text-decoration: underline; padding: .7rem 0 0; font-size: .85rem; }
+.dl-found-note { color: #808080; font-size: .8rem; margin: .7rem 0 0; line-height: 1.45; }
+.dl-found-note:empty { display: none; }
+.dl-found-wait { display: flex; justify-content: center; padding: 2rem 0; }
+.dl-found-empty { color: #b3b3b3; margin: .8rem 0; }
+@media (max-width: 640px) {
+    .dl-hit { grid-template-columns: minmax(0, 1fr) auto; gap: .5rem .8rem; }
+    .dl-hit .dl-safety { grid-column: 1 / -1; justify-self: start; }
+    .dl-hit-title { white-space: normal; }
+}
 .dl-actions { display: flex; gap: .7rem; flex-wrap: wrap; }
 .dl-disk { margin: 0 0 1.6rem; }
 .dl-disk .bar { height: 4px; background: #333; border-radius: 2px; overflow: hidden; }
@@ -128,6 +173,10 @@ textarea.dl-input { min-height: 96px; resize: vertical; font-family: ui-monospac
 .dl-fileopt .fname i { color: #808080; margin-right: .4rem; width: 1rem; }
 .dl-fileopt .fname em { color: #8c8c8c; font-style: normal; font-size: .75rem; margin-left: .4rem; }
 .dl-fileopt .size { color: #8c8c8c; text-align: right; }
+.dl-fileopt.program { background: rgba(229, 9, 20, .08); }
+.dl-fileopt.program .fname, .dl-fileopt.program .fname i { color: #ff8a8f; }
+.dl-fileopt .fname em.danger { color: #fff; background: rgba(229, 9, 20, .7); border-radius: 3px; padding: 0 .4em; font-weight: 700; }
+.dl-danger { margin: .2rem 0 .8rem; font-size: .88rem; }
 .dl-fileopt button { background: none; border: 0; color: #fff; width: 30px; height: 30px; border-radius: 50%; }
 .dl-fileopt button:hover { background: var(--nf-red); }
 .dl-toggle { display: flex; align-items: center; gap: .6rem; margin-top: 1rem; font-size: .9rem; color: #ddd; cursor: pointer; }

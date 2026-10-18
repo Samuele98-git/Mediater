@@ -7,9 +7,9 @@ import fs from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
 import prisma from '../lib/prisma.js';
-import { isAuth } from '../middleware/auth.js';
+import { isAuth, profileChosen, ownerProfileActive, PROFILE_COOKIE } from '../middleware/auth.js';
 import { avatarUpload, uploadPath, discardUpload } from '../middleware/upload.js';
-import { PUBLIC_DIR } from '../lib/config.js';
+import { PUBLIC_DIR, COOKIE_SECURE } from '../lib/config.js';
 
 const router = express.Router();
 router.use(isAuth);
@@ -18,6 +18,7 @@ const MAX_PROFILES = 5;
 const PIN_RE = /^\d{4}$/;
 const MAX_PIN_FAILS = 5;
 const PIN_LOCK_MS = 5 * 60 * 1000;
+const PIN_LOCK_MAX_MS = 60 * 60 * 1000;
 const BUILTIN_AVATARS = (() => {
     try {
         return fs.readdirSync(path.join(PUBLIC_DIR, 'img', 'avatars')).filter(f => f.endsWith('.svg')).sort()
@@ -30,27 +31,46 @@ const owns = (req, id) => req.profiles.find(p => p.id === id);
 const wantsJson = (req) => (req.get('accept') || '').includes('application/json') || req.is('application/json');
 
 // ------------------------------------------------------------ PIN helpers
+// Wrong PINs are counted per profile and per device — not per browser session,
+// which anyone could simply restart: every 5 misses lock that profile on that
+// device, for 5 minutes, then 10, 20, 40, up to an hour.
+const pinFails = new Map(); // `${profileId}|${ip}` -> { count, until }
+const failKey = (req, id) => `${id}|${req.ip || (req.socket && req.socket.remoteAddress) || ''}`;
+const forgetFails = (id) => { for (const k of pinFails.keys()) if (k.startsWith(id + '|')) pinFails.delete(k); };
+
 function lockedMinutes(req, id) {
-    const f = req.session.pinFails && req.session.pinFails[id];
+    const f = pinFails.get(failKey(req, id));
     return f && f.until > Date.now() ? Math.ceil((f.until - Date.now()) / 60000) : 0;
 }
 
-/** Checks a PIN with a per-session attempt limit. Returns 'ok' | 'wrong' | 'locked'. */
+/** Checks a PIN with the attempt limit. Returns 'ok' | 'wrong' | 'locked'. */
 async function verifyPin(req, profile, pin) {
     if (!profile.pin) return 'ok';
     if (lockedMinutes(req, profile.id)) return 'locked';
+    const key = failKey(req, profile.id);
     const ok = PIN_RE.test(String(pin || '')) && await bcrypt.compare(String(pin), profile.pin);
-    const fails = req.session.pinFails || (req.session.pinFails = {});
-    if (ok) { delete fails[profile.id]; return 'ok'; }
-    const f = fails[profile.id] || { count: 0 };
+    if (ok) { pinFails.delete(key); return 'ok'; }
+    const f = pinFails.get(key) || { count: 0, until: 0 };
     f.count += 1;
-    if (f.count >= MAX_PIN_FAILS) { f.until = Date.now() + PIN_LOCK_MS; f.count = 0; }
-    fails[profile.id] = f;
+    if (f.count % MAX_PIN_FAILS === 0) f.until = Date.now() + Math.min(PIN_LOCK_MAX_MS, PIN_LOCK_MS * 2 ** (f.count / MAX_PIN_FAILS - 1));
+    pinFails.set(key, f);
+    if (pinFails.size > 5000) pinFails.delete(pinFails.keys().next().value);
     return lockedMinutes(req, profile.id) ? 'locked' : 'wrong';
 }
 
-// The profile in use right now was already unlocked when it was chosen.
-const isUnlocked = (req, p) => !p.pin || (req.session.profileChosen && req.session.profileId === p.id) || req.session.editUnlocked === p.id;
+// The profile in use right now was already unlocked when it was chosen, and the
+// account owner (in their own, unlocked profile) manages everyone else's.
+const isUnlocked = (req, p) => !p.pin || (profileChosen(req) && req.session.profileId === p.id) || req.session.editUnlocked === p.id
+    || (p.parentId === req.user.id && ownerProfileActive(req));
+
+/** Remembers the chosen profile for this browser session only (see needsProfileGate). */
+function rememberProfile(req, res, p) {
+    const token = crypto.randomBytes(18).toString('hex');
+    req.session.profileId = p.id;
+    req.session.profileChosen = true;
+    req.session.profileToken = token;
+    res.cookie(PROFILE_COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: COOKIE_SECURE, path: '/' });
+}
 
 function pinFailure(req, res, p, result, fallbackUrl) {
     if (wantsJson(req)) return res.status(403).json({ error: result, minutes: lockedMinutes(req, p.id) });
@@ -65,7 +85,7 @@ router.get('/', (req, res) => {
         next: safeNext(req.query.next),
         maxProfiles: MAX_PROFILES,
         openLock: req.profiles.some(p => p.id === lock && p.pin) ? lock : null,
-        hasPassword: !!req.user.password
+        ownerActive: ownerProfileActive(req)
     });
 });
 
@@ -78,8 +98,7 @@ router.post('/select/:id', async (req, res, next) => {
             const result = await verifyPin(req, p, req.body.pin);
             if (result !== 'ok') return pinFailure(req, res, p, result, `/profiles?lock=${p.id}&next=${encodeURIComponent(nextUrl)}`);
         }
-        req.session.profileId = p.id;
-        req.session.profileChosen = true;
+        rememberProfile(req, res, p);
         delete req.session.editUnlocked;
         req.session.save(() => (wantsJson(req) ? res.json({ ok: true, next: nextUrl }) : res.redirect(nextUrl)));
     } catch (e) { next(e); }
@@ -97,16 +116,16 @@ router.post('/:id/unlock', async (req, res, next) => {
     } catch (e) { next(e); }
 });
 
-// "Forgot PIN?" — the account password removes the PIN.
+// A forgotten PIN: the account owner removes a family member's PIN from their own
+// (unlocked) profile. The owner's own PIN can only be reset on the server
+// (npm run reset-pin) — when one sign-in is shared, the account password is no secret.
 router.post('/:id/reset-pin', async (req, res, next) => {
     try {
         const p = owns(req, parseInt(req.params.id, 10));
         if (!p) return res.status(404).json({ error: 'not found' });
-        if (!req.user.password || !(await bcrypt.compare(String(req.body.password || ''), req.user.password))) {
-            return res.status(403).json({ error: 'password' });
-        }
+        if (!p.parentId || !ownerProfileActive(req)) return res.status(403).json({ error: 'owner_only' });
         await prisma.user.update({ where: { id: p.id }, data: { pin: null } });
-        if (req.session.pinFails) delete req.session.pinFails[p.id];
+        forgetFails(p.id);
         res.json({ ok: true });
     } catch (e) { next(e); }
 });
@@ -134,12 +153,15 @@ function avatarFrom(req) {
 async function applyPinChange(req, p, data) {
     const action = req.body.pinAction;
     if (action !== 'set' && action !== 'remove') return null;
-    // Changing a lock needs the account password (or, for SSO accounts, the current PIN).
+    // Changing a lock needs the account password (or, for SSO accounts, the current PIN —
+    // except for the account owner managing a family member's profile).
+    const ownerManaging = p && p.parentId && ownerProfileActive(req);
     if (req.user.password) {
         if (!(await bcrypt.compare(String(req.body.accountPassword || ''), req.user.password))) return 'password';
-    } else if (p && p.pin && !(await bcrypt.compare(String(req.body.currentPin || ''), p.pin))) {
+    } else if (p && p.pin && !ownerManaging && !(await bcrypt.compare(String(req.body.currentPin || ''), p.pin))) {
         return 'current_pin';
     }
+    if (p) forgetFails(p.id);
     if (action === 'remove') { data.pin = null; return null; }
     const pin = String(req.body.newPin || '').trim();
     if (!PIN_RE.test(pin)) return 'pin';
@@ -195,7 +217,7 @@ router.post('/:id/delete', async (req, res, next) => {
         if (p && p.parentId) {
             if (!isUnlocked(req, p)) return res.redirect(`/profiles?manage=1&lock=${p.id}`);
             await prisma.user.delete({ where: { id: p.id } });
-            if (req.session.profileId === p.id) { req.session.profileId = req.user.id; req.session.profileChosen = false; }
+            if (req.session.profileId === p.id) { req.session.profileId = req.user.id; req.session.profileChosen = false; delete req.session.profileToken; }
             delete req.session.editUnlocked;
         }
         res.redirect('/profiles?manage=1');

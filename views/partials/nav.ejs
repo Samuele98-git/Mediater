@@ -51,7 +51,7 @@ const searchQ = typeof q !== 'undefined' && pt === 'search' ? q : '';
                     </form>
                 <% }) %>
                 <a href="/profiles?manage=1"><i class="fa-solid fa-pencil"></i> <%= t('nav.manage_profiles') %></a>
-                <a href="/account"><i class="fa-regular fa-user"></i> <%= t('nav.account') %></a>
+                <% if (typeof isOwnerProfile !== 'undefined' && isOwnerProfile) { %><a href="/account"><i class="fa-regular fa-user"></i> <%= t('nav.account') %></a><% } %>
                 <% if (navAdmin) { %>
                     <a href="/admin"><i class="fa-solid fa-sliders"></i> <%= t('nav.manage') %></a>
                     <a href="/downloads"><i class="fa-solid fa-download"></i> <%= t('nav.downloads') %></a>

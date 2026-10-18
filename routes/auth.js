@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '../lib/prisma.js';
 import { getSettings, settingsEvents } from '../lib/settings.js';
 import { PORT } from '../lib/config.js';
+import { PROFILE_COOKIE } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -86,13 +87,15 @@ settingsEvents.on('change', conf => loadSso(conf).catch(e => console.error('[aut
 
 const safeNext = (n) => (typeof n === 'string' && n.startsWith('/') && !n.startsWith('//') && !n.startsWith('/login')) ? n : '/';
 
+// Several people may share one sign-in: "Who's watching?" always comes first,
+// so nobody lands in the admin's profile without picking it (and its PIN).
 async function afterLogin(req, res) {
     req.session.profileId = req.user.id;
     req.session.profileChosen = false;
-    const subs = await prisma.user.count({ where: { parentId: req.user.id } });
+    delete req.session.profileToken;
     const next = safeNext(req.session.returnTo);
     delete req.session.returnTo;
-    req.session.save(() => res.redirect(subs > 0 ? '/profiles?next=' + encodeURIComponent(next) : next));
+    req.session.save(() => res.redirect('/profiles?next=' + encodeURIComponent(next)));
 }
 
 router.get('/login', (req, res, next) => {
@@ -132,6 +135,7 @@ router.get('/logout', (req, res, next) => {
         if (err) return next(err);
         req.session.destroy(() => {
             res.clearCookie('mediater.sid');
+            res.clearCookie(PROFILE_COOKIE);
             res.redirect('/login');
         });
     });

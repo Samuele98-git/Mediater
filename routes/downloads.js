@@ -7,6 +7,8 @@ import { isAdmin } from '../middleware/auth.js';
 import { torrentUpload } from '../middleware/upload.js';
 import { parseRelease } from '../lib/release-name.js';
 import * as tmdb from '../lib/tmdb.js';
+import { searchTorrents, feedsFrom } from '../lib/torrent-search.js';
+import { getSettings } from '../lib/settings.js';
 
 const router = express.Router();
 const int = (v) => parseInt(v, 10);
@@ -22,12 +24,13 @@ export function diskInfo() {
 router.get('/downloads', isAdmin, (req, res, next) => {
     // A magnet link opened from another site only pre-fills the dialog: nothing is added without a click.
     const magnet = typeof req.query.magnet === 'string' ? req.query.magnet.trim().split(/\s/)[0].slice(0, 4000) : '';
-    tmdb.tmdbEnabled().then(tmdbOn => res.render('downloads', {
+    Promise.all([tmdb.tmdbEnabled(), getSettings()]).then(([tmdbOn, s]) => res.render('downloads', {
         enabled: engine.enabled,
         reason: engine.disabledReason,
         tmdbOn,
         disk: diskInfo(),
-        initialMagnet: /^magnet:\?/i.test(magnet) ? magnet : ''
+        initialMagnet: /^magnet:\?/i.test(magnet) ? magnet : '',
+        searchSources: [...(s.SEARCH_ARCHIVE !== 'false' ? ['Internet Archive'] : []), ...feedsFrom(s).map(f => f.name)]
     })).catch(next);
 });
 
@@ -64,6 +67,13 @@ router.get('/api/torrents/events', isAdmin, (req, res) => {
         clearInterval(ping);
     });
 });
+
+// Search the configured sources (Internet Archive, Jackett / Prowlarr) — safest results first.
+router.get('/api/torrents/search', isAdmin, wrap(async (req, res) => {
+    const q = String(req.query.q || '').trim().slice(0, 120);
+    if (q.length < 2) return res.json({ query: q, sources: [], errors: [], results: [] });
+    res.json(await searchTorrents(q));
+}));
 
 router.get('/api/torrents/:id', isAdmin, (req, res) => {
     const d = engine.describe(int(req.params.id));
@@ -146,7 +156,7 @@ router.get('/api/torrents/:id/suggest', isAdmin, wrap(async (req, res) => {
     res.json({
         parsed, kind, query: q, tmdbOn: await tmdb.tmdbEnabled(), tmdbError,
         results: results.slice(0, 8),
-        defaultFiles: files.length ? defaultSelection(files) : []
+        defaultFiles: files.length ? defaultSelection(files, kind) : []
     });
 }));
 
