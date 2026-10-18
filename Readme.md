@@ -66,7 +66,7 @@
 | ![Player with Audio & Subtitles](docs/screenshots/player.jpg) | ![Pause screen](docs/screenshots/player-paused.jpg) |
 | *Player — Audio & Subtitles* | *"You're watching" pause screen* |
 | ![Who's watching?](docs/screenshots/profiles.jpg) | ![Profile Lock](docs/screenshots/profile-lock.jpg) |
-| *"Who's watching?" — Giulia's profile is locked* | *Profile Lock PIN* |
+| *"Who's watching?" — TV's profile is locked* | *Profile Lock PIN* |
 | ![Downloads](docs/screenshots/downloads.jpg) | ![Review a download](docs/screenshots/download-review.jpg) |
 | *Downloads (admin) — download only* | *Review: pick files, preview, TMDB match* |
 | ![Search](docs/screenshots/download-search.jpg) | |
