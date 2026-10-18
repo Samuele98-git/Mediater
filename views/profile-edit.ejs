@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+    <%- include('partials/head') %>
+    <title><%= editing ? t('profiles.edit_title') : t('profiles.add_title') %> – <%= APP_NAME %></title>
+</head>
+<body class="nf-profiles-page" style="padding-bottom:0">
+    <header class="nf-plain-head"><a href="/" class="nf-logo"><%= APP_NAME %></a></header>
+    <main class="nf-gate" style="justify-content:flex-start;padding-top:4vh">
+        <form class="nf-profile-form" method="POST" enctype="multipart/form-data" action="<%= editing ? '/profiles/' + editing.id + '/edit' : '/profiles/new' %>">
+            <h1><%= editing ? t('profiles.edit_title') : t('profiles.add_title') %></h1>
+            <p class="sub"><%= editing ? '' : t('profiles.add_sub') %></p>
+            <div class="grid">
+                <img class="big-avatar" id="nfAvatarPreview" src="<%= editing ? avatarUrl(editing) : (avatars[0] || '/img/avatars/avatar-1.svg') %>" alt="">
+                <div>
+                    <input type="text" name="name" maxlength="24" required placeholder="<%= t('profiles.name') %>" value="<%= editing ? displayName(editing) : '' %>" autofocus>
+                    <div class="nf-avatar-picker" id="nfAvatarPicker" role="radiogroup" aria-label="<%= t('profiles.choose_avatar') %>">
+                        <% avatars.forEach(function (a, i) { %>
+                            <label><input type="radio" name="avatarChoice" value="<%= a %>" <%= (editing ? editing.avatar === a : i === 0) ? 'checked' : '' %>><img src="<%= a %>" alt=""></label>
+                        <% }) %>
+                    </div>
+                    <label class="nf-avatar-upload"><i class="fa-solid fa-upload"></i> <%= t('profiles.upload_avatar') %><input type="file" name="avatar" accept="image/*" id="nfAvatarFile"></label>
+                    <% if (!editing || editing.parentId) { %>
+                        <label class="nf-check">
+                            <input type="checkbox" name="isKids" <%= editing && editing.isKids ? 'checked' : '' %>>
+                            <span><%= t('profiles.kids_label') %><small><%= t('profiles.kids_hint') %></small></span>
+                        </label>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Profile Lock -->
+            <section class="nf-lock-section" id="nfLock">
+                <h2><i class="fa-solid fa-lock"></i> <%= t('profiles.lock_title') %>
+                    <span class="nf-lock-state <%= editing && editing.pin ? 'on' : '' %>"><%= editing && editing.pin ? t('profiles.lock_state_on') : t('profiles.lock_state_off') %></span></h2>
+                <p class="nf-lock-hint"><%= t('profiles.lock_hint') %></p>
+                <% if (typeof errorKey !== 'undefined' && errorKey) { %><div class="nf-alert err"><i class="fa-solid fa-circle-exclamation"></i> <%= t('profiles.err_' + errorKey) %></div><% } %>
+                <div class="nf-lock-actions" role="radiogroup">
+                    <label><input type="radio" name="pinAction" value="keep" checked> <%= t('profiles.pin_keep') %></label>
+                    <label><input type="radio" name="pinAction" value="set"> <%= editing && editing.pin ? t('profiles.pin_change') : t('profiles.pin_set') %></label>
+                    <% if (editing && editing.pin) { %><label><input type="radio" name="pinAction" value="remove"> <%= t('profiles.pin_remove') %></label><% } %>
+                </div>
+                <div class="nf-lock-fields" id="nfLockFields" hidden>
+                    <div class="nf-lock-newpin">
+                        <label for="nfNewPin"><%= t('profiles.new_pin') %></label>
+                        <input type="password" id="nfNewPin" name="newPin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="••••">
+                    </div>
+                    <% if (hasPassword) { %>
+                        <div>
+                            <label for="nfAccPass"><%= t('profiles.account_password') %></label>
+                            <input type="password" id="nfAccPass" name="accountPassword" autocomplete="current-password">
+                            <small><%= t('profiles.password_hint') %></small>
+                        </div>
+                    <% } else if (editing && editing.pin) { %>
+                        <div>
+                            <label for="nfCurPin"><%= t('profiles.current_pin') %></label>
+                            <input type="password" id="nfCurPin" name="currentPin" inputmode="numeric" maxlength="4" autocomplete="off">
+                        </div>
+                    <% } %>
+                </div>
+            </section>
+            <div class="nf-form-actions">
+                <button type="submit" class="nf-btn nf-btn-white"><%= t('profiles.save') %></button>
+                <a href="/profiles?manage=1" class="nf-gate-manage"><%= t('profiles.cancel') %></a>
+            </div>
+        </form>
+        <% if (editing && editing.parentId) { %>
+            <form method="POST" action="/profiles/<%= editing.id %>/delete" class="nf-profile-form" style="margin-top:1rem" onsubmit="return confirm(<%= JSON.stringify(t('profiles.delete_confirm')) %>)">
+                <button type="submit" class="nf-gate-manage"><%= t('profiles.delete') %></button>
+            </form>
+        <% } %>
+    </main>
+    <script>
+        (function () {
+            var prev = document.getElementById('nfAvatarPreview');
+            document.getElementById('nfAvatarPicker').addEventListener('change', function (e) { if (e.target.value) prev.src = e.target.value; });
+            var lockFields = document.getElementById('nfLockFields');
+            var newPin = document.getElementById('nfNewPin').parentNode;
+            document.querySelectorAll('input[name=pinAction]').forEach(function (r) {
+                r.addEventListener('change', function () {
+                    lockFields.hidden = r.value === 'keep';
+                    newPin.hidden = r.value !== 'set';
+                    document.getElementById('nfNewPin').required = r.value === 'set';
+                    var pass = document.getElementById('nfAccPass');
+                    if (pass) pass.required = r.value !== 'keep';
+                });
+            });
+            document.getElementById('nfNewPin').addEventListener('input', function (e) { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4); });
+            document.getElementById('nfAvatarFile').addEventListener('change', function (e) {
+                var f = e.target.files && e.target.files[0];
+                if (f) { var r = new FileReader(); r.onload = function (ev) { prev.src = ev.target.result; }; r.readAsDataURL(f); }
+            });
+        })();
+    </script>
+</body>
+</html>

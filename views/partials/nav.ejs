@@ -1,54 +1,72 @@
-<nav class="nf-nav">
-    <button class="nf-nav-burger" type="button" aria-label="Menu" aria-expanded="false">
-        <i class="fas fa-bars"></i>
-    </button>
-
-    <a href="/" class="nf-logo"><%= APP_NAME %></a>
-
-    <div class="nf-nav-links">
-        <a href="/" class="<%= (typeof pageType !== 'undefined' && pageType === 'home') ? 'active' : '' %>"><%= t('nav.home') %></a>
-        <a href="/series" class="<%= (typeof pageType !== 'undefined' && pageType === 'series') ? 'active' : '' %>"><%= t('nav.tv_shows') %></a>
-        <a href="/movies" class="<%= (typeof pageType !== 'undefined' && pageType === 'movies') ? 'active' : '' %>"><%= t('nav.movies') %></a>
-        <a href="/mylist"><%= t('nav.my_list') %></a>
-        <% if (user && user.role === 'admin') { %>
-            <a href="/admin"><%= t('nav.manage') %></a>
-        <% } %>
-    </div>
-
-    <div class="nf-nav-right">
-        <div class="nf-search">
-            <button class="nf-search-toggle" type="button" aria-label="Search"><i class="fas fa-search"></i></button>
-            <input class="nf-search-input" type="text" placeholder="<%= t('nav.search_placeholder') %>" />
+<%
+const pt = typeof pageType !== 'undefined' ? pageType : '';
+const navAdmin = !!canAdmin;
+const links = [
+    { href: '/', key: 'home', label: t('nav.home') },
+    { href: '/browse/tv', key: 'series', label: t('nav.tv_shows') },
+    { href: '/browse/movies', key: 'movies', label: t('nav.movies') },
+    { href: '/latest', key: 'latest', label: t('nav.new_popular') },
+    { href: '/browse/my-list', key: 'mylist', label: t('nav.my_list') }
+];
+if (navAdmin) links.push({ href: '/downloads', key: 'downloads', label: t('nav.downloads') });
+const searchQ = typeof q !== 'undefined' && pt === 'search' ? q : '';
+%>
+<header class="nf-nav" id="nfNav">
+    <a href="/" class="nf-logo" aria-label="<%= APP_NAME %>"><%= APP_NAME %></a>
+    <ul class="nf-nav-links">
+        <% links.forEach(function (l) { %><li><a href="<%= l.href %>" class="<%= pt === l.key ? 'active' : '' %>"><%= l.label %></a></li><% }) %>
+    </ul>
+    <div class="nf-nav-browse" id="nfBrowse">
+        <button type="button" aria-haspopup="true"><%= t('nav.browse') %> <i class="fa-solid fa-caret-down"></i></button>
+        <div class="nf-nav-browse-menu">
+            <% links.forEach(function (l) { %><a href="<%= l.href %>" class="<%= pt === l.key ? 'active' : '' %>"><%= l.label %></a><% }) %>
         </div>
-        <div class="nf-profile" tabindex="0">
-            <img class="nf-profile-avatar" src="<%= user && user.avatar ? user.avatar : 'https://ui-avatars.com/api/?background=E50914&color=fff&name=' + encodeURIComponent(user ? user.username : 'U') %>" alt="">
-            <i class="fas fa-caret-down caret"></i>
-            <div class="nf-profile-menu">
-                <a href="/profile"><i class="fas fa-user"></i> <%= t('nav.account') %></a>
-                <a href="/mylist"><i class="fas fa-list"></i> <%= t('nav.my_list') %></a>
-                <% if (user && user.role === 'admin') { %>
-                    <a href="/admin"><i class="fas fa-cog"></i> <%= t('nav.manage') %></a>
+    </div>
+    <div class="nf-nav-right">
+        <div class="nf-search<%= searchQ ? ' open has-text' : '' %>" id="nfSearch">
+            <div class="nf-search-box">
+                <button type="button" class="nf-search-toggle" aria-label="<%= t('nav.search') %>"><i class="fa-solid fa-magnifying-glass"></i></button>
+                <input type="text" placeholder="<%= t('nav.search_placeholder') %>" aria-label="<%= t('nav.search') %>" autocomplete="off" spellcheck="false" value="<%= searchQ %>">
+                <button type="button" class="nf-search-clear" aria-label="<%= t('common.clear') %>"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+        <% if (navAdmin) { %>
+        <a href="/downloads" class="nf-icon-btn nf-dl-link" id="nfDlLink" title="<%= t('nav.downloads') %>" aria-label="<%= t('nav.downloads') %>">
+            <i class="fa-solid fa-download"></i><span class="nf-icon-badge" hidden></span>
+        </a>
+        <% } %>
+        <div class="nf-drop nf-bell" id="nfBell">
+            <button type="button" class="nf-icon-btn" aria-label="<%= t('nav.notifications') %>"><i class="fa-regular fa-bell"></i><span class="nf-icon-badge" hidden></span></button>
+            <div class="nf-drop-panel nf-bell-panel"><div class="nf-bell-empty"><%= t('common.loading') %></div></div>
+        </div>
+        <div class="nf-drop nf-profile" id="nfProfile">
+            <button type="button" class="nf-profile-btn" aria-label="<%= t('nav.account') %>">
+                <img class="nf-avatar" src="<%= avatarUrl(profile) %>" alt=""><i class="fa-solid fa-caret-down caret"></i>
+            </button>
+            <div class="nf-drop-panel">
+                <% (profiles || []).filter(function (p) { return profile && p.id !== profile.id; }).forEach(function (p) { %>
+                    <form method="POST" action="/profiles/select/<%= p.id %>">
+                        <input type="hidden" name="next" value="/">
+                        <button class="nf-drop-item nf-drop-profile" type="submit"><img src="<%= avatarUrl(p) %>" alt=""> <%= displayName(p) %></button>
+                    </form>
+                <% }) %>
+                <a href="/profiles?manage=1"><i class="fa-solid fa-pencil"></i> <%= t('nav.manage_profiles') %></a>
+                <a href="/account"><i class="fa-regular fa-user"></i> <%= t('nav.account') %></a>
+                <% if (navAdmin) { %>
+                    <a href="/admin"><i class="fa-solid fa-sliders"></i> <%= t('nav.manage') %></a>
+                    <a href="/downloads"><i class="fa-solid fa-download"></i> <%= t('nav.downloads') %></a>
                 <% } %>
                 <hr>
-                <a href="/logout"><i class="fas fa-sign-out-alt"></i> <%= t('nav.sign_out') %></a>
+                <a href="/logout" class="nf-drop-sign"><%= t('nav.sign_out_of', { app: APP_NAME }) %></a>
             </div>
         </div>
     </div>
+</header>
+<% if (pt === 'home' || pt === 'series' || pt === 'movies' || pt === 'genre') { %>
+<nav class="nf-pills" aria-label="<%= t('nav.browse') %>">
+    <a href="/browse/tv" class="<%= pt === 'series' ? 'active' : '' %>"><%= t('nav.tv_shows') %></a>
+    <a href="/browse/movies" class="<%= pt === 'movies' ? 'active' : '' %>"><%= t('nav.movies') %></a>
+    <a href="/browse/my-list"><%= t('nav.my_list') %></a>
+    <% if (typeof genres !== 'undefined' && genres.length) { %><button type="button" data-open-genres><%= t('nav.categories') %> <i class="fa-solid fa-chevron-down"></i></button><% } %>
 </nav>
-
-<div class="nf-mobile-drawer" aria-hidden="true">
-    <div class="nf-mobile-search">
-        <i class="fas fa-search"></i>
-        <input type="text" class="nf-mobile-search-input" placeholder="<%= t('nav.search_placeholder') %>" />
-    </div>
-    <a href="/" class="<%= (typeof pageType !== 'undefined' && pageType === 'home') ? 'active' : '' %>"><i class="fas fa-home"></i> <%= t('nav.home') %></a>
-    <a href="/series" class="<%= (typeof pageType !== 'undefined' && pageType === 'series') ? 'active' : '' %>"><i class="fas fa-tv"></i> <%= t('nav.tv_shows') %></a>
-    <a href="/movies" class="<%= (typeof pageType !== 'undefined' && pageType === 'movies') ? 'active' : '' %>"><i class="fas fa-film"></i> <%= t('nav.movies') %></a>
-    <a href="/mylist"><i class="fas fa-list"></i> <%= t('nav.my_list') %></a>
-    <a href="/profile"><i class="fas fa-user"></i> <%= t('nav.account') %></a>
-    <% if (user && user.role === 'admin') { %>
-        <a href="/admin"><i class="fas fa-cog"></i> <%= t('nav.manage') %></a>
-    <% } %>
-    <hr>
-    <a href="/logout" class="danger"><i class="fas fa-sign-out-alt"></i> <%= t('nav.sign_out') %></a>
-</div>
+<% } %>

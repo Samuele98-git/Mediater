@@ -1,47 +1,46 @@
+// Account settings (username, password, avatar of the signed-in account).
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
-import { upload } from '../middleware/upload.js';
+import prisma from '../lib/prisma.js';
+import { avatarUpload, uploadPath, discardUpload } from '../middleware/upload.js';
+import { isAuth } from '../middleware/auth.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
-const isAuth = (req, res, next) => req.isAuthenticated() ? next() : res.redirect('/login');
-
 router.use(isAuth);
+// Kids profiles can't open account settings (like Netflix).
+router.use((req, res, next) => (req.profile && req.profile.isKids ? res.redirect('/') : next()));
 
-router.get('/', (req, res) => {
-    res.render('profile', {
-        successMsg: req.query.success || null,
-        errorMsg: req.query.error || null
-    });
+router.get('/', (req, res, next) => {
+    prisma.user.count({ where: { parentId: req.user.id } }).then(profiles => res.render('account', {
+        successMsg: req.query.success ? 1 : 0,
+        errorKey: ['taken', 'failed', 'wrong_password'].includes(req.query.error) ? req.query.error : null,
+        profileCount: profiles + 1
+    })).catch(next);
 });
 
-router.post('/update', upload.single('avatar'), async (req, res) => {
+router.post('/update', avatarUpload.single('avatar'), async (req, res) => {
     try {
-        const { username, newPassword } = req.body;
-        const updateData = {};
-
-        if (req.user.auth_provider === 'local' && username && username.trim() !== "" && username !== req.user.username) {
-            const exists = await prisma.user.findUnique({ where: { username } });
-            if (exists) return res.redirect('/profile?error=Username%20already%20taken');
-            updateData.username = username;
+        const { username, newPassword, currentPassword } = req.body;
+        const data = {};
+        const local = req.user.auth_provider === 'local';
+        const wantsName = local && username && username.trim() && username.trim() !== req.user.username;
+        const wantsPass = local && newPassword && newPassword.trim();
+        if ((wantsName || wantsPass) && req.user.password) {
+            const ok = await bcrypt.compare(String(currentPassword || ''), req.user.password);
+            if (!ok) { discardUpload(req); return res.redirect('/account?error=wrong_password'); }
         }
-
-        if (req.file) {
-            updateData.avatar = '/uploads/images/' + req.file.filename;
+        if (wantsName) {
+            if (await prisma.user.findUnique({ where: { username: username.trim() } })) { discardUpload(req); return res.redirect('/account?error=taken'); }
+            data.username = username.trim();
         }
-
-        if (req.user.auth_provider === 'local' && newPassword && newPassword.trim() !== "") {
-            updateData.password = await bcrypt.hash(newPassword, 10);
-        }
-
-        if (Object.keys(updateData).length > 0) {
-            await prisma.user.update({ where: { id: req.user.id }, data: updateData });
-        }
-        res.redirect('/profile?success=1');
+        if (wantsPass) data.password = await bcrypt.hash(newPassword, 10);
+        if (req.file) data.avatar = uploadPath(req.file);
+        if (Object.keys(data).length) await prisma.user.update({ where: { id: req.user.id }, data });
+        res.redirect('/account?success=1');
     } catch (e) {
-        console.error('Profile update error:', e);
-        res.redirect('/profile?error=Update%20failed');
+        discardUpload(req);
+        console.error('[account] update failed:', e);
+        res.redirect('/account?error=failed');
     }
 });
 

@@ -1,0 +1,15 @@
+<div class="nf-modal-overlay" id="nfModal" aria-hidden="true">
+    <div class="nf-modal" role="dialog" aria-modal="true" aria-label="<%= t('modal.details') %>" id="nfModalBody"></div>
+</div>
+<div class="nf-mini" id="nfMini" aria-hidden="true"></div>
+<div class="nf-toasts" id="nfToasts" role="status" aria-live="polite"></div>
+<% if (typeof genres !== 'undefined' && genres.length) { %>
+<div class="nf-cat-overlay" id="nfCategories" hidden>
+    <button type="button" class="nf-cat-close" aria-label="<%= t('common.close') %>"><i class="fa-solid fa-xmark"></i></button>
+    <div class="nf-cat-list">
+        <a href="/"><%= t('nav.home') %></a>
+        <a href="/browse/my-list"><%= t('nav.my_list') %></a>
+        <% genres.forEach(function (g) { %><a href="/browse/genre/<%= encodeURIComponent(g.name) %>"><%= g.name %></a><% }) %>
+    </div>
+</div>
+<% } %>

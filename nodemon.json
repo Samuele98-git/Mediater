@@ -1,4 +1,4 @@
 {
-  "ignore": ["uploads/*", "public/*", "data.json"],
+  "ignore": ["uploads/*", "public/*", "data/*", "sessions/*", "data.json", "*.db", "*.db-journal"],
   "ext": "js,json"
 }

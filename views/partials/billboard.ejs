@@ -1,0 +1,31 @@
+<% const h = hero; %>
+<section class="nf-billboard" id="nfBillboard" data-id="<%= h.id %>">
+    <div class="nf-billboard-glow" aria-hidden="true"><% if (h.poster || h.backdrop) { %><img src="<%= h.poster || h.backdrop %>" alt=""><% } %></div>
+    <div class="nf-billboard-card">
+        <div class="nf-billboard-media">
+            <% if (h.backdrop) { %><img class="nf-bb-img desktop" src="<%= h.backdrop %>" alt=""><% } %>
+            <% if (h.poster || h.backdrop) { %><img class="nf-bb-img mobile" src="<%= h.poster || h.backdrop %>" alt="" loading="lazy"><% } %>
+            <div class="nf-billboard-vignette"></div>
+            <div class="nf-billboard-fade"></div>
+        </div>
+        <div class="nf-billboard-info">
+            <div class="nf-billboard-logo-wrap">
+                <% if (h.logo) { %><img class="nf-billboard-logo" src="<%= h.logo %>" alt="<%= h.title %>"><% } else { %><h1 class="nf-billboard-title"><%= h.title %></h1><% } %>
+            </div>
+            <% if (h.top10) { %>
+                <div class="nf-billboard-rank"><span class="nf-top10-tag"><b>TOP</b><b>10</b></span><%= t('billboard.rank', { rank: h.top10, kind: t(h.type === 'movie' ? 'billboard.in_movies' : 'billboard.in_shows') }) %></div>
+            <% } %>
+            <div class="nf-billboard-tags nf-tags"><% h.genres.forEach(function (g) { %><span><%= g %></span><% }) %></div>
+            <% if (h.synopsis) { %><p class="nf-billboard-synopsis"><%= h.synopsis %></p><% } %>
+            <div class="nf-billboard-buttons">
+                <a class="nf-btn nf-btn-play" href="/watch/<%= h.id %>"><i class="fa-solid fa-play"></i> <%= t('home.play') %></a>
+                <button class="nf-btn nf-btn-info" type="button" data-modal="<%= h.id %>"><i class="fa-solid fa-circle-info"></i> <%= t('home.more_info') %></button>
+                <button class="nf-btn nf-btn-list" type="button" data-list="<%= h.id %>"><i class="fa-solid fa-<%= h.inList ? 'check' : 'plus' %>"></i> <%= t('nav.my_list') %></button>
+            </div>
+        </div>
+    </div>
+    <div class="nf-billboard-side">
+        <button class="nf-circle" type="button" id="nfBillboardMute" hidden aria-label="<%= t('player.mute') %>"><i class="fa-solid fa-volume-xmark"></i></button>
+        <% if (h.maturity) { %><span class="nf-maturity-tag"><%= h.maturity %></span><% } %>
+    </div>
+</section>

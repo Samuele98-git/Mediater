@@ -1,0 +1,13 @@
+<% const fAdmin = !!canAdmin; %>
+<footer class="nf-footer">
+    <div class="links">
+        <a href="/browse/tv"><%= t('nav.tv_shows') %></a>
+        <a href="/browse/movies"><%= t('nav.movies') %></a>
+        <a href="/latest"><%= t('nav.new_popular') %></a>
+        <a href="/browse/my-list"><%= t('nav.my_list') %></a>
+        <a href="/account"><%= t('nav.account') %></a>
+        <a href="/profiles?manage=1"><%= t('nav.manage_profiles') %></a>
+        <% if (fAdmin) { %><a href="/downloads"><%= t('nav.downloads') %></a><a href="/admin"><%= t('nav.manage') %></a><% } %>
+    </div>
+    <div class="code"><%= t('home.footer', { year: new Date().getFullYear(), app: APP_NAME }) %></div>
+</footer>

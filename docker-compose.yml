@@ -10,29 +10,36 @@ services:
       NODE_ENV: production
       PORT: "3000"
       HOST: "0.0.0.0"
+      DATA_DIR: /data
       UPLOAD_DIR: /data/uploads
-      SESSION_DIR: /data/sessions
       DATABASE_URL: file:/data/mediater.db
+      # Must be the same inside and outside: peers connect to the port the client announces.
+      TORRENT_PORT: "${TORRENT_PORT:-6881}"
     ports:
       - "${HTTP_PORT:-3000}:3000"
+      # BitTorrent: forward this port on your router for faster downloads.
+      - "${TORRENT_PORT:-6881}:${TORRENT_PORT:-6881}"
+      - "${TORRENT_PORT:-6881}:${TORRENT_PORT:-6881}/udp"
     volumes:
       - mediater_data:/data
+      # Optional: keep downloads on another disk instead of the volume
+      # - /mnt/media/downloads:/data/downloads
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/healthz"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 15s
+      start_period: 20s
     # Drop kernel capabilities we don't need + run with no-new-privileges
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    # Reasonable resource caps — bump if you have headroom
+    # Live video conversion and torrents need some headroom
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 2g
 
 volumes:
   mediater_data:

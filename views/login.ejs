@@ -1,150 +1,69 @@
 <!DOCTYPE html>
 <html lang="<%= lang %>">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title><%= t('login.title') %> - <%= APP_NAME %></title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/netflix.css">
+    <%- include('partials/head') %>
+    <title><%= t('login.title') %> – <%= APP_NAME %></title>
     <style>
-        body {
-            min-height: 100vh;
+        body.nf-login {
+            min-height: 100vh; display: flex; flex-direction: column;
             background:
-                linear-gradient(0deg, rgba(0,0,0,0.6), rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.85)),
-                url('https://assets.nflxext.com/ffe/siteui/vlv3/4d7bb476-6d8b-4063-8a05-e25fe7423203/EN-US-default.jpg') center/cover no-repeat #000;
-            position: relative;
+                radial-gradient(120% 60% at 50% 118%, rgba(0,0,0,0) 54%, color-mix(in srgb, var(--nf-red) 90%, #fff) 54.4%, var(--nf-red) 55.2%, rgba(120, 6, 14, .9) 58%, rgba(20, 0, 2, 0) 75%),
+                radial-gradient(80% 50% at 50% 100%, rgba(229, 9, 20, .25), transparent 70%),
+                linear-gradient(180deg, #000 0%, #0b0b0b 60%, #160304 100%);
+            background-color: #000;
         }
-        body::before {
-            content:''; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.4);
-            z-index: 0;
-        }
-        .login-header {
-            position: relative; z-index: 1;
-            padding: 22px 60px;
-        }
-        .login-header .nf-logo { font-size: 36px; letter-spacing: -1.5px; }
-        .login-wrap {
-            position: relative; z-index: 1;
-            display: flex; align-items: flex-start; justify-content: center;
-            padding: 30px 16px 80px;
-        }
-        .login-card {
-            background: rgba(0,0,0,0.75);
-            padding: 60px 68px 40px;
-            width: 100%; max-width: 450px;
-            border-radius: 4px;
-            color: white;
-        }
-        .login-card h1 { font-size: 32px; font-weight: 700; margin: 0 0 28px; }
-        .login-card .field {
-            position: relative; margin-bottom: 16px;
-        }
-        .login-card .field input {
-            width: 100%; padding: 16px 20px 0;
-            height: 50px; background: #333;
-            border: none; border-radius: 4px;
-            color: white; font-size: 16px; outline: none;
-            transition: background 0.2s ease;
-        }
-        .login-card .field input:focus,
-        .login-card .field input:not(:placeholder-shown) { background: #454545; }
-        .login-card .field label {
-            position: absolute; left: 20px; top: 50%;
-            transform: translateY(-50%);
-            color: #8c8c8c; font-size: 16px;
-            transition: 0.2s ease; pointer-events: none;
-        }
-        .login-card .field input:focus + label,
-        .login-card .field input:not(:placeholder-shown) + label {
-            top: 14px; transform: none;
-            font-size: 11px;
-        }
-        .login-card .btn-primary {
-            width: 100%; background: var(--nf-red);
-            color: white; border: none; padding: 14px;
-            font-size: 16px; font-weight: 700; border-radius: 4px;
-            cursor: pointer; margin-top: 22px;
-            transition: background 0.2s ease;
-        }
-        .login-card .btn-primary:hover { background: var(--nf-red-hover); }
-        .login-card .btn-sso {
-            width: 100%; background: #333; color: white; border: none;
-            padding: 14px; font-size: 16px; font-weight: 600; border-radius: 4px;
-            cursor: pointer; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 10px;
-            transition: background 0.2s ease;
-        }
-        .login-card .btn-sso:hover { background: #444; }
-        .login-card .divider {
-            color: #8c8c8c; text-align: center; margin: 20px 0 6px;
-            font-size: 14px;
-        }
-        .login-card .help {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-top: 14px; font-size: 13px; color: #b3b3b3;
-        }
-        .login-card .help label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
-        .login-card .help input { appearance: none; width: 16px; height: 16px; background: #737373; border-radius: 2px; cursor: pointer; }
-        .login-card .help input:checked { background: var(--nf-red); }
-        .login-card .footer-link { margin-top: 40px; color: #737373; font-size: 14px; }
-        .login-card .footer-link span { color: white; cursor: pointer; }
-        .login-card .footer-link span:hover { text-decoration: underline; }
-        .alert {
-            background: #e87c03; color: white;
-            padding: 10px 16px; border-radius: 4px;
-            margin-bottom: 16px; font-size: 14px;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .legal {
-            text-align: center; color: #999; font-size: 12px;
-            margin-top: 40px; padding: 0 24px;
-        }
+        .nf-login-head { padding: 1.5rem 4vw; display: flex; align-items: center; justify-content: space-between; }
+        .nf-login-head .nf-logo { font-size: 2.4rem; }
+        .nf-login-wrap { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 1rem 1rem 4rem; }
+        .nf-login-card { width: 100%; max-width: 450px; background: rgba(0, 0, 0, .72); border-radius: 6px; padding: 3rem 4rem 2.5rem; box-shadow: 0 10px 40px rgba(0,0,0,.6); backdrop-filter: blur(2px); }
+        .nf-login-card h1 { font-size: 2rem; margin: 0 0 1.75rem; font-weight: 700; }
+        .nf-float { position: relative; margin-bottom: 1rem; }
+        .nf-float input { width: 100%; height: 56px; padding: 1.4rem 1rem .4rem; background: rgba(22, 22, 22, .7); border: 1px solid rgba(128,128,128,.7); border-radius: 4px; color: #fff; font-size: 1rem; outline: none; transition: border-color .15s, box-shadow .15s; }
+        .nf-float input:focus { border-color: #fff; box-shadow: 0 0 0 1px #fff; }
+        .nf-float label { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #b3b3b3; pointer-events: none; transition: all .15s ease; font-size: 1rem; }
+        .nf-float input:focus + label, .nf-float input:not(:placeholder-shown) + label { top: .5rem; transform: none; font-size: .75rem; }
+        .nf-login-btn { width: 100%; height: 44px; background: var(--nf-red); color: #fff; border: 0; border-radius: 4px; font-size: 1rem; font-weight: 700; margin-top: .5rem; transition: filter .15s; }
+        .nf-login-btn:hover { filter: brightness(1.1); }
+        .nf-login-or { text-align: center; color: #b3b3b3; margin: 1rem 0; text-transform: uppercase; font-size: .9rem; }
+        .nf-login-sso { width: 100%; height: 44px; background: rgba(128,128,128,.4); color: #fff; border: 0; border-radius: 4px; font-size: 1rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: .6rem; }
+        .nf-login-sso:hover { background: rgba(128,128,128,.3); }
+        .nf-login-help { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; color: #b3b3b3; font-size: .9rem; }
+        .nf-login-help label { display: flex; align-items: center; gap: .5rem; cursor: pointer; }
+        .nf-login-help input { width: 18px; height: 18px; accent-color: #fff; }
+        .nf-login-foot { margin-top: 2.5rem; color: #8c8c8c; font-size: .85rem; line-height: 1.5; }
+        .nf-login-err { background: #e87c03; color: #fff; border-radius: 4px; padding: .8rem 1rem; margin-bottom: 1rem; font-size: .9rem; display: flex; gap: .6rem; align-items: flex-start; }
         @media (max-width: 740px) {
-            .login-header { padding: 18px 22px; }
-            .login-card { padding: 32px 24px; background: rgba(0,0,0,0.6); }
+            body.nf-login { background: #000; padding-bottom: 0; }
+            .nf-login-head .nf-logo { font-size: 1.8rem; }
+            .nf-login-card { background: transparent; padding: 1rem .5rem; box-shadow: none; }
         }
     </style>
 </head>
-<body>
-    <header class="login-header">
-        <a href="/" class="nf-logo"><%= APP_NAME %></a>
-    </header>
-
-    <main class="login-wrap">
-        <div class="login-card">
+<body class="nf-login">
+    <header class="nf-login-head"><a href="/" class="nf-logo"><%= APP_NAME %></a></header>
+    <main class="nf-login-wrap">
+        <div class="nf-login-card">
             <h1><%= t('login.title') %></h1>
-
-            <% if (error) { %>
-                <div class="alert"><i class="fas fa-exclamation-circle"></i> <%= error %></div>
-            <% } %>
-
-            <form action="/auth/local" method="POST">
-                <div class="field">
-                    <input type="text" name="username" id="username" placeholder=" " required autocomplete="username">
+            <% if (error) { %><div class="nf-login-err"><i class="fa-solid fa-circle-exclamation" style="margin-top:2px"></i><span><%= t('login.invalid') %></span></div><% } %>
+            <form action="/auth/local" method="POST" autocomplete="on">
+                <div class="nf-float">
+                    <input type="text" name="username" id="username" placeholder=" " required autocomplete="username" autocapitalize="none" autofocus>
                     <label for="username"><%= t('login.username') %></label>
                 </div>
-                <div class="field">
+                <div class="nf-float">
                     <input type="password" name="password" id="password" placeholder=" " required autocomplete="current-password">
                     <label for="password"><%= t('login.password') %></label>
                 </div>
-                <button type="submit" class="btn-primary"><%= t('login.sign_in_btn') %></button>
-
-                <div class="help">
-                    <label><input type="checkbox" checked> <%= t('login.remember_me') %></label>
-                    <span style="color:#b3b3b3;"><%= t('login.need_help') %></span>
+                <button type="submit" class="nf-login-btn"><%= t('login.sign_in_btn') %></button>
+                <div class="nf-login-help">
+                    <label><input type="checkbox" checked disabled> <%= t('login.remember_me') %></label>
                 </div>
             </form>
-
             <% if (hasSso) { %>
-                <div class="divider"><%= t('login.or') %></div>
-                <a href="/auth/sso" style="text-decoration:none;">
-                    <button class="btn-sso" type="button"><i class="fas fa-shield-halved"></i> <%= t('login.sign_in_sso') %></button>
-                </a>
+                <div class="nf-login-or"><%= t('login.or') %></div>
+                <a href="/auth/sso" class="nf-login-sso"><i class="fa-solid fa-shield-halved"></i> <%= t('login.sign_in_sso') %></a>
             <% } %>
-
-            <p class="footer-link">
-                <%= t('login.powered_by') %> <span><%= APP_NAME %></span>.
-            </p>
+            <p class="nf-login-foot"><%= t('login.footer', { app: APP_NAME }) %></p>
         </div>
     </main>
 </body>

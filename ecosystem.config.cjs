@@ -8,7 +8,7 @@ module.exports = {
             instances: 1,
             watch: false,
             autorestart: true,
-            max_memory_restart: '1G',
+            max_memory_restart: '1536M',
             kill_timeout: 10000,
             wait_ready: false,
             env: {

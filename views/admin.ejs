@@ -1,497 +1,219 @@
 <!DOCTYPE html>
 <html lang="<%= lang %>">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title><%= t('nav.manage') %> - <%= APP_NAME %></title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/netflix.css">
-    <style>
-        body { display: flex; min-height: 100vh; }
-        :root { --surface: #181818; --border: #2a2a2a; }
-
-        .sidebar { width: 260px; background: #0a0a0a; border-right: 1px solid var(--border); padding: 25px 18px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; flex-shrink: 0; }
-        .sidebar .nf-logo { margin-bottom: 28px; }
-        .nav-item {
-            padding: 12px 14px; color: #b3b3b3; cursor: pointer;
-            border-radius: 4px; transition: 0.15s; display: flex; align-items: center; gap: 12px;
-            font-size: 14px; text-decoration: none;
-        }
-        .nav-item:hover { background: #232323; color: white; }
-        .nav-item.active { background: rgba(229,9,20,0.15); color: white; border-left: 3px solid var(--nf-red); }
-
-        .mobile-topbar {
-            display: none; position: sticky; top: 0; z-index: 50;
-            background: #0a0a0a; border-bottom: 1px solid var(--border);
-            padding: 12px 14px calc(12px + env(safe-area-inset-top, 0));
-            align-items: center; gap: 12px;
-        }
-        .mobile-topbar .nf-logo { font-size: 22px; margin: 0; }
-        .mobile-tabs {
-            display: none; position: sticky; top: 56px; z-index: 49;
-            background: #141414; border-bottom: 1px solid var(--border);
-            overflow-x: auto; gap: 0; -webkit-overflow-scrolling: touch;
-        }
-        .mobile-tabs::-webkit-scrollbar { display: none; }
-        .mobile-tabs .tab {
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 14px 18px; font-size: 14px; color: #b3b3b3;
-            border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap;
-            background: none; border-left: 0; border-right: 0; border-top: 0;
-            font-family: inherit;
-        }
-        .mobile-tabs .tab.active { color: white; border-bottom-color: var(--nf-red); }
-
-        .main { flex: 1; min-width: 0; padding: 36px 40px; overflow-y: auto; }
-        .panel { display: none; }
-        .panel.active { display: block; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-
-        h2 { font-size: 1.8rem; font-weight: 500; margin: 0 0 24px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
-        h3 { font-size: 1.1rem; font-weight: 600; margin: 0 0 14px; }
-
-        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 24px; margin-bottom: 24px; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-        .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
-        .field { margin-bottom: 12px; }
-        label { display: block; color: #b3b3b3; font-size: 12px; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-
-        input[type="text"], input[type="password"], input[type="number"], input[type="color"], select, textarea {
-            width: 100%; background: #0a0a0a; border: 1px solid var(--border);
-            color: white; padding: 10px 12px; border-radius: 4px;
-            font-size: 14px; font-family: inherit; box-sizing: border-box;
-        }
-        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--nf-red); }
-        textarea { min-height: 90px; resize: vertical; }
-
-        .checkbox-row { display: flex; align-items: center; gap: 10px; padding: 12px 0; }
-        .checkbox-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--nf-red); }
-        .checkbox-row label { margin-bottom: 0; text-transform: none; font-size: 14px; color: #e5e5e5; font-weight: 500; }
-
-        .upload-box {
-            border: 2px dashed #444; padding: 18px; text-align: center;
-            border-radius: 6px; cursor: pointer; transition: 0.2s;
-            background: #0a0a0a; position: relative;
-            font-size: 13px; color: #b3b3b3;
-        }
-        .upload-box i { font-size: 24px; display: block; margin-bottom: 6px; color: #888; }
-        .upload-box:hover { border-color: var(--nf-red); background: #1a1a1a; }
-        .upload-box input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-        .file-name { color: var(--nf-red); font-weight: 600; display: block; margin-top: 6px; font-size: 12px; word-break: break-all; }
-
-        .nf-btn { background: var(--nf-red); color: white; border: none; padding: 11px 24px; border-radius: 4px; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-        .nf-btn:hover { filter: brightness(1.1); }
-        .btn-secondary { background: #444; color: white; }
-        .btn-secondary:hover { background: #555; }
-        .btn-success { background: #46d369; color: black; }
-
-        table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 6px; overflow: hidden; }
-        th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); }
-        th { background: #232323; color: #b3b3b3; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-        td { font-size: 14px; }
-        td img.row-thumb { width: 80px; height: 45px; border-radius: 3px; object-fit: cover; }
-        td img.row-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-right: 10px; vertical-align: middle; }
-
-        .badge { padding: 3px 8px; border-radius: 3px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-        .badge-admin { background: var(--nf-red); color: white; }
-        .badge-viewer { background: #2ecc71; color: black; }
-        .badge-type { background: #333; color: #e5e5e5; }
-
-        .action-btn { background: none; border: none; color: #888; cursor: pointer; padding: 6px 10px; font-size: 14px; transition: 0.15s; border-radius: 3px; }
-        .action-btn:hover { color: white; background: #333; }
-        .action-btn.danger:hover { color: #ff5b5b; }
-
-        @media (max-width: 900px) {
-            body { display: block; }
-            .sidebar { display: none; }
-            .mobile-topbar { display: flex; }
-            .mobile-tabs { display: flex; }
-            .main { padding: 18px 14px 60px; }
-            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-            .card { padding: 16px; }
-            h2 { font-size: 1.3rem; padding-bottom: 10px; margin-bottom: 16px; }
-            input, select, textarea { font-size: 16px; /* prevent iOS zoom */ padding: 12px; }
-            .nf-btn { width: 100%; justify-content: center; }
-            table { font-size: 13px; }
-            th, td { padding: 8px 10px; }
-            td img.row-thumb { width: 50px; height: 28px; }
-            td img.row-avatar { width: 26px; height: 26px; }
-        }
-        @media (max-width: 500px) {
-            .mobile-topbar a.back-link { display: none; }
-            table thead { display: none; }
-            table tr { display: block; padding: 12px 0; border-bottom: 1px solid var(--border); }
-            table td { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border: 0; gap: 12px; }
-            table td:first-child { font-weight: 600; }
-            table td::before { content: attr(data-label); color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-            table td:first-child::before { display: none; }
-        }
-    </style>
+    <%- include('partials/head', { extraCss: 'admin' }) %>
+    <title><%= t('nav.manage') %> – <%= APP_NAME %></title>
 </head>
-<body>
+<body class="adm">
+<% const fmtB = function (n) { n = Number(n) || 0; var u = ['B','KB','MB','GB','TB'], i = 0; while (n >= 1024 && i < 4) { n /= 1024; i++; } return n.toFixed(i > 1 ? 1 : 0) + ' ' + u[i]; }; %>
+<aside class="adm-side">
+    <a href="/" class="nf-logo"><%= APP_NAME %></a>
+    <button type="button" data-tab="library"><i class="fa-solid fa-film"></i> <%= t('admin.library') %></button>
+    <button type="button" data-tab="users"><i class="fa-solid fa-users"></i> <%= t('admin.users') %></button>
+    <button type="button" data-tab="settings"><i class="fa-solid fa-sliders"></i> <%= t('admin.settings') %></button>
+    <button type="button" data-tab="system"><i class="fa-solid fa-server"></i> <%= t('admin.system') %></button>
+    <a href="/downloads"><i class="fa-solid fa-download"></i> <%= t('nav.downloads') %></a>
+    <span class="sep"></span>
+    <a href="/"><i class="fa-solid fa-arrow-left"></i> <%= t('admin.back_to_browse') %></a>
+</aside>
+<nav class="adm-mobilebar">
+    <button type="button" data-tab="library"><%= t('admin.library') %></button>
+    <button type="button" data-tab="users"><%= t('admin.users') %></button>
+    <button type="button" data-tab="settings"><%= t('admin.settings') %></button>
+    <button type="button" data-tab="system"><%= t('admin.system') %></button>
+    <a href="/downloads"><%= t('nav.downloads') %></a>
+    <a href="/"><%= t('admin.back_to_browse') %></a>
+</nav>
 
-    <header class="mobile-topbar">
-        <a href="/" class="nf-logo" style="text-decoration:none;"><%= APP_NAME %></a>
-        <a href="/" class="back-link" style="margin-left:auto; color:#b3b3b3; font-size:14px;"><i class="fas fa-arrow-left"></i> <%= t('admin.back_to_browse') %></a>
-    </header>
-    <nav class="mobile-tabs">
-        <button type="button" class="tab active" data-target="library" onclick="switchTab('library', this)"><i class="fas fa-film"></i> <%= t('admin.library') %></button>
-        <button type="button" class="tab" data-target="users" onclick="switchTab('users', this)"><i class="fas fa-users"></i> <%= t('admin.users') %></button>
-        <button type="button" class="tab" data-target="settings" onclick="switchTab('settings', this)"><i class="fas fa-cogs"></i> <%= t('admin.settings') %></button>
-    </nav>
+<main class="adm-main" data-tab="<%= tab %>">
+    <% if (flash) { %>
+        <div class="nf-alert <%= ['taken', 'missing'].includes(flash) ? 'err' : 'ok' %> adm-flash"><i class="fa-solid fa-circle-info"></i> <%= t('admin.flash_' + flash) %></div>
+    <% } %>
 
-    <aside class="sidebar">
-        <a href="/" class="nf-logo" style="text-decoration:none;"><%= APP_NAME %></a>
-        <div class="nav-item active" onclick="switchTab('library', this)"><i class="fas fa-film"></i> <%= t('admin.library') %></div>
-        <div class="nav-item" onclick="switchTab('users', this)"><i class="fas fa-users"></i> <%= t('admin.users') %></div>
-        <div class="nav-item" onclick="switchTab('settings', this)"><i class="fas fa-cogs"></i> <%= t('admin.settings') %></div>
-        <div style="flex:1;"></div>
-        <a href="/" class="nav-item"><i class="fas fa-arrow-left"></i> <%= t('admin.back_to_browse') %></a>
-    </aside>
-
-    <main class="main">
-        <div id="library" class="panel active">
-            <h2><%= t('admin.library') %></h2>
-
-            <div class="card">
-                <h3><%= t('admin.add_media') %></h3>
-                <form action="/admin/media/add" method="POST" enctype="multipart/form-data">
-                    <div class="grid-2">
-                        <div class="field">
-                            <label><%= t('admin.title_field') %></label>
-                            <input type="text" name="title" required>
-                        </div>
-                        <div class="field">
-                            <label><%= t('admin.type') %></label>
-                            <select name="type">
-                                <option value="movie"><%= t('admin.movie') %></option>
-                                <option value="series"><%= t('admin.series') %></option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label><%= t('admin.description') %></label>
-                        <textarea name="description" placeholder="<%= t('admin.description_placeholder') %>"></textarea>
-                    </div>
-
-                    <div class="grid-4">
-                        <div class="field">
-                            <label><%= t('admin.category') %></label>
-                            <input type="text" name="category" placeholder="<%= t('admin.category_placeholder') %>" required>
-                        </div>
-                        <div class="field">
-                            <label><%= t('admin.year') %></label>
-                            <input type="number" name="releaseYear" placeholder="2025">
-                        </div>
-                        <div class="field">
-                            <label><%= t('admin.duration_min') %></label>
-                            <input type="number" name="duration" placeholder="120">
-                        </div>
-                        <div class="field">
-                            <label><%= t('admin.maturity') %></label>
-                            <input type="text" name="maturity" placeholder="<%= t('admin.maturity_placeholder') %>">
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label><%= t('admin.genres') %></label>
-                        <input type="text" name="genres" placeholder="<%= t('admin.genres_placeholder') %>">
-                    </div>
-
-                    <div class="grid-4">
-                        <div class="field">
-                            <label><%= t('admin.cover') %></label>
-                            <div class="upload-box">
-                                <i class="fas fa-image"></i>
-                                <%= t('admin.drop_cover') %>
-                                <span class="file-name" id="thumbN"></span>
-                                <input type="file" name="thumbnail" accept="image/*" onchange="showFn(this,'thumbN')">
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label><%= t('admin.backdrop') %></label>
-                            <div class="upload-box">
-                                <i class="fas fa-images"></i>
-                                <%= t('admin.drop_backdrop') %>
-                                <span class="file-name" id="backN"></span>
-                                <input type="file" name="backdrop" accept="image/*" onchange="showFn(this,'backN')">
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label><%= t('admin.logo') %></label>
-                            <div class="upload-box">
-                                <i class="fas fa-tag"></i>
-                                <%= t('admin.drop_logo') %>
-                                <span class="file-name" id="logoN"></span>
-                                <input type="file" name="logo" accept="image/*" onchange="showFn(this,'logoN')">
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label><%= t('admin.video_file') %></label>
-                            <div class="upload-box">
-                                <i class="fas fa-video"></i>
-                                <%= t('admin.drop_video') %>
-                                <span class="file-name" id="vidN"></span>
-                                <input type="file" name="video" accept="video/*" onchange="showFn(this,'vidN')">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="checkbox-row">
-                        <input type="checkbox" id="trending" name="trending">
-                        <label for="trending"><%= t('admin.show_trending') %></label>
-                    </div>
-
-                    <button class="nf-btn" type="submit"><i class="fas fa-plus"></i> <%= t('admin.add_content') %></button>
-                </form>
-            </div>
-
-            <% if (media.some(m => m.type === 'series')) { %>
-                <div class="card">
-                    <h3><%= t('admin.add_episode') %></h3>
-                    <form action="/admin/episode/add" method="POST" enctype="multipart/form-data">
-                        <div class="grid-2">
-                            <div class="field">
-                                <label><%= t('admin.series_field') %></label>
-                                <select name="parentId" required>
-                                    <% media.filter(m => m.type === 'series').forEach(s => { %>
-                                        <option value="<%= s.id %>"><%= s.title %></option>
-                                    <% }) %>
-                                </select>
-                            </div>
-                            <div class="field">
-                                <label><%= t('admin.episode_number') %></label>
-                                <input type="number" name="order" placeholder="1" required>
-                            </div>
-                        </div>
-
-                        <div class="grid-2">
-                            <div class="field">
-                                <label><%= t('admin.episode_title') %></label>
-                                <input type="text" name="title">
-                            </div>
-                            <div class="field">
-                                <label><%= t('admin.duration_min') %></label>
-                                <input type="number" name="duration" placeholder="45">
-                            </div>
-                        </div>
-
-                        <div class="field">
-                            <label><%= t('admin.episode_description') %></label>
-                            <textarea name="description"></textarea>
-                        </div>
-
-                        <div class="grid-2">
-                            <div class="field">
-                                <label><%= t('admin.episode_still') %></label>
-                                <div class="upload-box">
-                                    <i class="fas fa-image"></i>
-                                    <%= t('admin.drop_image') %>
-                                    <span class="file-name" id="epThumbN"></span>
-                                    <input type="file" name="thumbnail" accept="image/*" onchange="showFn(this,'epThumbN')">
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label><%= t('admin.episode_video') %></label>
-                                <div class="upload-box">
-                                    <i class="fas fa-video"></i>
-                                    <%= t('admin.drop_video') %>
-                                    <span class="file-name" id="epVidN"></span>
-                                    <input type="file" name="video" accept="video/*" onchange="showFn(this,'epVidN')" required>
-                                </div>
-                            </div>
-                        </div>
-
-                        <button class="nf-btn" type="submit"><i class="fas fa-plus"></i> <%= t('admin.add_episode') %></button>
-                    </form>
-                </div>
-            <% } %>
-
-            <div class="card">
-                <h3><%= t('admin.content_total') %> (<%= media.length %>)</h3>
-                <table>
-                    <thead>
-                        <tr><th><%= t('admin.title_field') %></th><th><%= t('admin.type') %></th><th><%= t('admin.category_col') %></th><th><%= t('admin.year_col') %></th><th><%= t('admin.trending_col') %></th><th></th></tr>
-                    </thead>
-                    <tbody>
-                        <% media.forEach(m => { %>
-                            <tr>
-                                <td data-label="<%= t('admin.title_field') %>">
-                                    <% if (m.thumbnail) { %><img src="<%= m.thumbnail %>" class="row-thumb"><% } %>
-                                    <%= m.title %>
-                                </td>
-                                <td data-label="<%= t('admin.type') %>"><span class="badge badge-type"><%= m.type %></span></td>
-                                <td data-label="<%= t('admin.category_col') %>"><%= m.category %></td>
-                                <td data-label="<%= t('admin.year_col') %>"><%= m.releaseYear || '—' %></td>
-                                <td data-label="<%= t('admin.trending_col') %>"><%= m.trending ? '⭐' : '—' %></td>
-                                <td data-label="" style="text-align:right;">
-                                    <form action="/admin/media/delete/<%= m.id %>" method="POST" style="display:inline;" onsubmit="return confirm('<%- t('admin.delete_confirm').replace(/'/g, "\\'") %>')">
-                                        <button class="action-btn danger" title="<%= t('admin.delete') %>"><i class="fas fa-trash"></i></button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <% }) %>
-                    </tbody>
-                </table>
+    <!-- LIBRARY -->
+    <section class="adm-panel" id="tab-library">
+        <div class="adm-top">
+            <h1><%= t('admin.library') %> <small style="color:#8c8c8c;font-size:1rem;font-weight:400">(<%= titles.length %>)</small></h1>
+            <div class="tools">
+                <a class="nf-btn nf-btn-sm" href="/admin/title/new?type=series"><i class="fa-solid fa-tv"></i> <%= t('admin.add_series') %></a>
+                <a class="nf-btn nf-btn-sm nf-btn-red" href="/admin/title/new?type=movie"><i class="fa-solid fa-plus"></i> <%= t('admin.add_movie') %></a>
             </div>
         </div>
-
-        <div id="users" class="panel">
-            <h2><%= t('admin.users') %></h2>
-            <div class="card">
-                <h3 id="userFormTitle"><%= t('admin.create_new_user') %></h3>
-                <form id="userForm" action="/admin/user/add" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="id" id="editUserId">
-                    <div class="grid-3">
-                        <div class="field">
-                            <label><%= t('admin.username') %></label>
-                            <input type="text" name="username" id="editUsername" required>
-                        </div>
-                        <div class="field">
-                            <label><%= t('admin.password') %> <span id="passHint" style="text-transform:none; font-size:11px; color:#888;"></span></label>
-                            <input type="password" name="password" id="editPassword" placeholder="<%= t('admin.password_enter') %>">
-                        </div>
-                        <div class="field">
-                            <label><%= t('admin.role') %></label>
-                            <select name="role" id="editRole">
-                                <option value="viewer"><%= t('admin.viewer') %></option>
-                                <option value="admin"><%= t('admin.admin_role') %></option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label><%= t('admin.avatar') %></label>
-                        <div class="upload-box">
-                            <i class="fas fa-user-circle"></i>
-                            <%= t('admin.drop_avatar') %>
-                            <span class="file-name" id="userAvN"></span>
-                            <input type="file" name="avatar" accept="image/*" onchange="showFn(this,'userAvN')">
-                        </div>
-                    </div>
-                    <button class="nf-btn" id="userSubmitBtn" type="submit"><i class="fas fa-plus"></i> <%= t('admin.create_user') %></button>
-                    <button type="button" class="nf-btn btn-secondary" id="userCancelBtn" style="display:none;" onclick="resetUserForm()"><%= t('admin.cancel') %></button>
-                </form>
+        <% if (system.tmdbOn) { %>
+        <div class="adm-card">
+            <h2><i class="fa-solid fa-wand-magic-sparkles"></i> <%= t('admin.quick_add') %> <small><%= t('admin.quick_add_hint') %></small></h2>
+            <div class="adm-search-row">
+                <input class="adm-input" id="qaQuery" placeholder="<%= t('admin.tmdb_search_placeholder') %>">
+                <select id="qaType"><option value=""><%= t('admin.any_type') %></option><option value="movie"><%= t('admin.movie') %></option><option value="series"><%= t('admin.series') %></option></select>
             </div>
-
-            <div class="card">
-                <h3><%= t('admin.users_total') %> (<%= users.length %>)</h3>
-                <table>
-                    <thead><tr><th><%= t('admin.user') %></th><th><%= t('admin.role') %></th><th><%= t('admin.provider') %></th><th></th></tr></thead>
-                    <tbody>
-                        <% users.forEach(u => { %>
-                            <tr>
-                                <td data-label="<%= t('admin.user') %>">
-                                    <img src="<%= u.avatar || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(u.username)) %>" class="row-avatar">
-                                    <%= u.username %>
-                                </td>
-                                <td data-label="<%= t('admin.role') %>"><span class="badge badge-<%= u.role %>"><%= u.role === 'admin' ? t('admin.admin_role') : t('admin.viewer') %></span></td>
-                                <td data-label="<%= t('admin.provider') %>"><%= u.auth_provider %></td>
-                                <td data-label="" style="text-align:right;">
-                                    <button class="action-btn" onclick='editUser(<%- JSON.stringify(u) %>)' title="<%= t('admin.edit') %>"><i class="fas fa-pencil-alt"></i></button>
-                                    <% if (u.username !== 'admin') { %>
-                                        <form action="/admin/user/delete/<%= u.id %>" method="POST" style="display:inline;" onsubmit="return confirm('<%- t('admin.delete_user_confirm').replace(/'/g, "\\'") %>')">
-                                            <button class="action-btn danger" title="<%= t('admin.delete') %>"><i class="fas fa-trash"></i></button>
-                                        </form>
-                                    <% } %>
-                                </td>
-                            </tr>
-                        <% }) %>
-                    </tbody>
-                </table>
+            <div class="adm-tmdb" id="qaResults" data-mode="new"></div>
+        </div>
+        <% } %>
+        <div class="adm-top" style="margin-bottom:1rem">
+            <input class="adm-input" id="libFilter" placeholder="<%= t('admin.filter_titles') %>" style="max-width:340px">
+            <div class="adm-filter" id="libType">
+                <button type="button" data-type="" class="on"><%= t('downloads.filter_all') %></button>
+                <button type="button" data-type="movie"><%= t('nav.movies') %></button>
+                <button type="button" data-type="series"><%= t('nav.tv_shows') %></button>
             </div>
         </div>
+        <% if (!titles.length) { %>
+            <div class="adm-empty"><i class="fa-solid fa-film" style="font-size:2.4rem;display:block;margin-bottom:1rem"></i><%= t('admin.library_empty') %><div class="adm-actions" style="justify-content:center"><a href="/downloads" class="nf-btn nf-btn-red"><i class="fa-solid fa-magnet"></i> <%= t('home.add_torrent') %></a><a href="/admin/title/new" class="nf-btn"><i class="fa-solid fa-plus"></i> <%= t('admin.add_movie') %></a></div></div>
+        <% } %>
+        <div class="adm-lib" id="libGrid">
+            <% titles.forEach(function (m) { %>
+                <a class="adm-title" href="/admin/title/<%= m.id %>" data-type="<%= m.type %>" data-q="<%= (m.title + ' ' + (m.year || '') + ' ' + (m.category || '')).toLowerCase() %>">
+                    <span class="img<%= m.landscape ? ' land' : '' %>">
+                        <% if (m.img) { %><img src="<%= m.img %>" alt="" loading="lazy"><% } else { %><i class="fa-solid <%= m.type === 'series' ? 'fa-tv' : 'fa-film' %>"></i><% } %>
+                        <span class="badges">
+                            <% if (m.type === 'series') { %><span><%= t('admin.episodes_n', { n: m.episodes }) %></span><% } %>
+                            <% if (m.trending) { %><span>★</span><% } %>
+                            <% if (m.downloading) { %><span class="dl"><i class="fa-solid fa-magnet"></i></span><% } %>
+                            <% if (!m.playable) { %><span class="warn" title="<%= t('admin.no_video') %>"><i class="fa-solid fa-triangle-exclamation"></i></span><% } %>
+                        </span>
+                    </span>
+                    <b><%= m.title %></b>
+                    <small><%= m.year || '' %><%= m.year && m.category ? ' · ' : '' %><%= m.category || '' %></small>
+                </a>
+            <% }) %>
+        </div>
+    </section>
 
-        <div id="settings" class="panel">
-            <h2><%= t('admin.settings') %></h2>
-            <form action="/admin/settings/update" method="POST">
-                <div class="card">
-                    <h3><%= t('admin.branding') %></h3>
-                    <div class="grid-3">
-                        <div class="field"><label><%= t('admin.app_name') %></label><input type="text" name="APP_NAME" value="<%= config.APP_NAME || 'MEDIATER' %>"></div>
-                        <div class="field"><label><%= t('admin.accent_color') %></label><input type="color" name="ACCENT_COLOR" value="<%= config.ACCENT_COLOR || '#E50914' %>" style="height:42px; padding:4px;"></div>
-                        <div class="field">
-                            <label><%= t('admin.language') %></label>
-                            <select name="LANGUAGE">
-                                <% Object.entries(langLabels).forEach(([code, label]) => { %>
-                                    <option value="<%= code %>" <%= (config.LANGUAGE || 'en') === code ? 'selected' : '' %>><%= label %></option>
-                                <% }) %>
-                            </select>
-                        </div>
-                    </div>
+    <!-- USERS -->
+    <section class="adm-panel" id="tab-users">
+        <div class="adm-top"><h1><%= t('admin.users') %></h1></div>
+        <div class="adm-card">
+            <h2 id="userFormTitle"><%= t('admin.create_new_user') %></h2>
+            <form id="userForm" action="/admin/user/add" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="id" id="editUserId">
+                <div class="adm-grid g4">
+                    <div class="adm-field"><label><%= t('admin.username') %></label><input type="text" name="username" id="editUsername" required autocomplete="off"></div>
+                    <div class="adm-field"><label><%= t('admin.password') %> <span id="passHint" style="text-transform:none"></span></label><input type="password" name="password" id="editPassword" placeholder="<%= t('admin.password_enter') %>" autocomplete="new-password" required></div>
+                    <div class="adm-field"><label><%= t('admin.role') %></label><select name="role" id="editRole"><option value="viewer"><%= t('admin.viewer') %></option><option value="admin"><%= t('admin.admin_role') %></option></select></div>
+                    <div class="adm-field"><label><%= t('admin.avatar') %></label><input type="file" name="avatar" accept="image/*" class="adm-input"></div>
                 </div>
-                <div class="card">
-                    <h3><%= t('admin.sso_title') %></h3>
-                    <div class="grid-2">
-                        <div class="field"><label><%= t('admin.client_id') %></label><input type="text" name="OIDC_CLIENT_ID" value="<%= config.OIDC_CLIENT_ID || '' %>"></div>
-                        <div class="field"><label><%= t('admin.client_secret') %></label><input type="password" name="OIDC_CLIENT_SECRET" value="<%= config.OIDC_CLIENT_SECRET || '' %>"></div>
-                    </div>
-                    <div class="field"><label><%= t('admin.issuer_url') %></label><input type="text" name="OIDC_ISSUER" value="<%= config.OIDC_ISSUER || '' %>"></div>
-                    <div class="grid-2">
-                        <div class="field"><label><%= t('admin.auth_url') %></label><input type="text" name="OIDC_AUTH_URL" value="<%= config.OIDC_AUTH_URL || '' %>"></div>
-                        <div class="field"><label><%= t('admin.token_url') %></label><input type="text" name="OIDC_TOKEN_URL" value="<%= config.OIDC_TOKEN_URL || '' %>"></div>
-                    </div>
-                    <div class="field"><label><%= t('admin.userinfo_url') %></label><input type="text" name="OIDC_USERINFO_URL" value="<%= config.OIDC_USERINFO_URL || '' %>"></div>
+                <div class="adm-actions">
+                    <button class="nf-btn nf-btn-red nf-btn-sm" id="userSubmitBtn" type="submit"><i class="fa-solid fa-plus"></i> <%= t('admin.create_user') %></button>
+                    <button type="button" class="nf-btn nf-btn-sm" id="userCancelBtn" hidden><%= t('admin.cancel') %></button>
                 </div>
-                <button class="nf-btn" type="submit"><i class="fas fa-save"></i> <%= t('admin.save_apply') %></button>
             </form>
         </div>
-    </main>
+        <div class="adm-card">
+            <h2><%= t('admin.users_total') %> <small>(<%= users.length %>)</small></h2>
+            <table class="adm-table">
+                <thead><tr><th><%= t('admin.user') %></th><th><%= t('admin.role') %></th><th><%= t('admin.provider') %></th><th><%= t('admin.profiles_col') %></th><th></th></tr></thead>
+                <tbody>
+                <% users.forEach(function (u) { %>
+                    <tr>
+                        <td data-label=""><img class="av" src="<%= avatarUrl(u) %>" alt=""><%= u.username %><% if (user && u.id === user.id) { %> <small style="color:#8c8c8c">(<%= t('admin.you') %>)</small><% } %></td>
+                        <td data-label="<%= t('admin.role') %>"><span class="adm-pill <%= u.role %>"><%= u.role === 'admin' ? t('admin.admin_role') : t('admin.viewer') %></span></td>
+                        <td data-label="<%= t('admin.provider') %>"><%= u.auth_provider %></td>
+                        <td data-label="<%= t('admin.profiles_col') %>"><%= u._count.profiles + 1 %></td>
+                        <td style="text-align:right;white-space:nowrap">
+                            <button class="adm-icon" type="button" data-edit-user="<%= JSON.stringify({ id: u.id, username: u.username, role: u.role }) %>" title="<%= t('admin.edit') %>"><i class="fa-solid fa-pen"></i></button>
+                            <% if (!(user && u.id === user.id)) { %>
+                                <form action="/admin/user/delete/<%= u.id %>" method="POST" style="display:inline" onsubmit="return confirm(<%= JSON.stringify(t('admin.delete_user_confirm')) %>)">
+                                    <button class="adm-icon danger" title="<%= t('admin.delete') %>"><i class="fa-solid fa-trash"></i></button>
+                                </form>
+                            <% } %>
+                        </td>
+                    </tr>
+                <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </section>
 
-    <script>
-        const __T = <%- JSON.stringify({
-            create_new_user: t('admin.create_new_user'),
-            edit_user: t('admin.edit_user'),
-            password_enter: t('admin.password_enter'),
-            password_keep: t('admin.password_keep'),
-            password_optional: t('admin.password_optional'),
-            create_user: t('admin.create_user'),
-            update_user: t('admin.update_user')
-        }) %>;
-        function switchTab(id, el) {
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item, .mobile-tabs .tab').forEach(n => n.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            // Sync both sidebars (desktop nav-item and mobile tab) by id
-            document.querySelectorAll('.nav-item').forEach(n => {
-                if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) n.classList.add('active');
-            });
-            document.querySelectorAll('.mobile-tabs .tab').forEach(t => {
-                if (t.dataset.target === id) t.classList.add('active');
-            });
-            if (el) el.classList.add('active');
-        }
-        function showFn(input, span) {
-            if (input.files && input.files[0]) document.getElementById(span).innerText = input.files[0].name;
-        }
-        function editUser(user) {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            switchTab('users', document.querySelectorAll('.nav-item')[1]);
-            const form = document.getElementById('userForm');
-            form.action = '/admin/user/edit';
-            document.getElementById('editUserId').value = user.id;
-            document.getElementById('editUsername').value = user.username;
-            document.getElementById('editRole').value = user.role;
-            document.getElementById('userFormTitle').innerText = __T.edit_user + ": " + user.username;
-            document.getElementById('editPassword').placeholder = __T.password_keep;
-            document.getElementById('editPassword').required = false;
-            document.getElementById('passHint').innerText = __T.password_optional;
-            document.getElementById('userSubmitBtn').innerHTML = '<i class="fas fa-save"></i> ' + __T.update_user;
-            document.getElementById('userCancelBtn').style.display = 'inline-flex';
-        }
-        function resetUserForm() {
-            const form = document.getElementById('userForm');
-            form.action = '/admin/user/add';
-            form.reset();
-            document.getElementById('editUserId').value = '';
-            document.getElementById('userFormTitle').innerText = __T.create_new_user;
-            document.getElementById('editPassword').placeholder = __T.password_enter;
-            document.getElementById('editPassword').required = true;
-            document.getElementById('passHint').innerText = "";
-            document.getElementById('userSubmitBtn').innerHTML = '<i class="fas fa-plus"></i> ' + __T.create_user;
-            document.getElementById('userCancelBtn').style.display = 'none';
-        }
-    </script>
+    <!-- SETTINGS -->
+    <section class="adm-panel" id="tab-settings">
+        <div class="adm-top"><h1><%= t('admin.settings') %></h1></div>
+        <form action="/admin/settings/update" method="POST" class="adm-card">
+            <h2><i class="fa-solid fa-palette"></i> <%= t('admin.branding') %></h2>
+            <div class="adm-grid g3">
+                <div class="adm-field"><label><%= t('admin.app_name') %></label><input type="text" name="APP_NAME" value="<%= config.APP_NAME || 'MEDIATER' %>" maxlength="30"></div>
+                <div class="adm-field"><label><%= t('admin.accent_color') %></label><input type="color" name="ACCENT_COLOR" value="<%= config.ACCENT_COLOR || '#E50914' %>"></div>
+                <div class="adm-field"><label><%= t('admin.language') %></label>
+                    <select name="LANGUAGE"><% Object.entries(langLabels).forEach(function (e) { %><option value="<%= e[0] %>" <%= (config.LANGUAGE || 'en') === e[0] ? 'selected' : '' %>><%= e[1] %></option><% }) %></select>
+                </div>
+            </div>
+            <div class="adm-actions"><button class="nf-btn nf-btn-red nf-btn-sm" type="submit"><i class="fa-solid fa-floppy-disk"></i> <%= t('admin.save_apply') %></button></div>
+        </form>
+
+        <form action="/admin/settings/update" method="POST" class="adm-card">
+            <h2><i class="fa-solid fa-wand-magic-sparkles"></i> <%= t('admin.metadata') %></h2>
+            <p class="hint"><%- t('admin.tmdb_hint', { link: '<a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org</a>' }) %></p>
+            <div class="adm-grid g2">
+                <div class="adm-field"><label><%= t('admin.tmdb_key') %> <% if (config.TMDB_API_KEY) { %><span class="adm-pill ok"><%= t('admin.configured') %></span><% } %></label><input type="password" name="TMDB_API_KEY" placeholder="<%= config.TMDB_API_KEY ? '••••••••••••' : t('admin.tmdb_key_placeholder') %>" autocomplete="off"></div>
+                <div class="adm-field"><label><%= t('admin.tmdb_region') %></label><input type="text" name="TMDB_REGION" value="<%= config.TMDB_REGION || 'US' %>" maxlength="2" style="text-transform:uppercase"></div>
+            </div>
+            <% if (config.TMDB_API_KEY) { %><label class="adm-check" style="margin-top:.8rem"><input type="checkbox" name="TMDB_API_KEY_CLEAR"> <%= t('admin.remove_key') %></label><% } %>
+            <div class="adm-actions"><button class="nf-btn nf-btn-red nf-btn-sm" type="submit"><i class="fa-solid fa-floppy-disk"></i> <%= t('admin.save_apply') %></button></div>
+        </form>
+
+        <form action="/admin/settings/update" method="POST" class="adm-card">
+            <h2><i class="fa-solid fa-magnet"></i> <%= t('admin.torrents') %></h2>
+            <div class="adm-grid g2">
+                <div class="adm-field"><label><%= t('admin.down_limit') %></label><input type="number" min="0" name="TORRENT_DOWNLOAD_LIMIT" value="<%= config.TORRENT_DOWNLOAD_LIMIT || 0 %>"></div>
+                <div class="adm-field"><label><%= t('admin.max_conns') %></label><input type="number" min="10" max="500" name="TORRENT_MAX_CONNS" value="<%= config.TORRENT_MAX_CONNS || 55 %>"></div>
+            </div>
+            <p class="adm-hint" style="margin-top:.8rem"><i class="fa-solid fa-shield-halved"></i> <%= t('admin.download_only_hint') %></p>
+            <p class="adm-hint"><%= t('admin.torrents_hint') %></p>
+            <div class="adm-actions"><button class="nf-btn nf-btn-red nf-btn-sm" type="submit"><i class="fa-solid fa-floppy-disk"></i> <%= t('admin.save_apply') %></button></div>
+        </form>
+
+        <form action="/admin/settings/update" method="POST" class="adm-card">
+            <input type="hidden" name="_form" value="playback">
+            <h2><i class="fa-solid fa-circle-play"></i> <%= t('admin.playback') %></h2>
+            <div class="adm-grid g2">
+                <div class="adm-field"><label><%= t('admin.max_height') %></label>
+                    <select name="TRANSCODE_MAX_HEIGHT"><% [720, 1080, 1440, 2160].forEach(function (h) { %><option value="<%= h %>" <%= String(config.TRANSCODE_MAX_HEIGHT || 1080) === String(h) ? 'selected' : '' %>><%= h %>p</option><% }) %></select>
+                </div>
+                <div class="adm-field" style="display:flex;align-items:flex-end"><label class="adm-check"><input type="checkbox" name="TRICKPLAY" value="true" <%= config.TRICKPLAY === 'false' ? '' : 'checked' %>> <%= t('admin.trickplay') %></label></div>
+            </div>
+            <div class="adm-actions"><button class="nf-btn nf-btn-red nf-btn-sm" type="submit"><i class="fa-solid fa-floppy-disk"></i> <%= t('admin.save_apply') %></button></div>
+        </form>
+
+        <form action="/admin/settings/update" method="POST" class="adm-card">
+            <h2><i class="fa-solid fa-shield-halved"></i> <%= t('admin.sso_title') %></h2>
+            <div class="adm-grid g2">
+                <div class="adm-field"><label><%= t('admin.public_url') %></label><input type="text" name="PUBLIC_URL" value="<%= config.PUBLIC_URL || '' %>" placeholder="https://media.example.com"></div>
+                <div class="adm-field"><label><%= t('admin.issuer_url') %></label><input type="text" name="OIDC_ISSUER" value="<%= config.OIDC_ISSUER || '' %>"></div>
+                <div class="adm-field"><label><%= t('admin.client_id') %></label><input type="text" name="OIDC_CLIENT_ID" value="<%= config.OIDC_CLIENT_ID || '' %>"></div>
+                <div class="adm-field"><label><%= t('admin.client_secret') %></label><input type="password" name="OIDC_CLIENT_SECRET" placeholder="<%= config.OIDC_CLIENT_SECRET ? '••••••••••••' : '' %>" autocomplete="off"></div>
+                <div class="adm-field"><label><%= t('admin.auth_url') %></label><input type="text" name="OIDC_AUTH_URL" value="<%= config.OIDC_AUTH_URL || '' %>"></div>
+                <div class="adm-field"><label><%= t('admin.token_url') %></label><input type="text" name="OIDC_TOKEN_URL" value="<%= config.OIDC_TOKEN_URL || '' %>"></div>
+                <div class="adm-field"><label><%= t('admin.userinfo_url') %></label><input type="text" name="OIDC_USERINFO_URL" value="<%= config.OIDC_USERINFO_URL || '' %>"></div>
+            </div>
+            <div class="adm-actions"><button class="nf-btn nf-btn-red nf-btn-sm" type="submit"><i class="fa-solid fa-floppy-disk"></i> <%= t('admin.save_apply') %></button></div>
+        </form>
+    </section>
+
+    <!-- SYSTEM -->
+    <section class="adm-panel" id="tab-system">
+        <div class="adm-top"><h1><%= t('admin.system') %></h1>
+            <form method="POST" action="/admin/system/rescan"><button class="nf-btn nf-btn-sm" type="submit"><i class="fa-solid fa-arrows-rotate"></i> <%= t('admin.rescan') %></button></form>
+        </div>
+        <div class="adm-stats">
+            <div class="adm-stat"><div class="k">ffmpeg</div><div class="v"><% if (system.ffmpeg) { %><i class="fa-solid fa-circle-check ok"></i> <%= system.ffmpeg.version.split('-')[0] %><% } else { %><i class="fa-solid fa-triangle-exclamation bad"></i> <%= t('admin.not_found') %><% } %></div><p><%= system.ffmpeg ? t('admin.ffmpeg_ok') : t('admin.ffmpeg_missing') %></p></div>
+            <div class="adm-stat"><div class="k">ffprobe</div><div class="v"><% if (system.ffprobe) { %><i class="fa-solid fa-circle-check ok"></i> <%= system.ffprobe.version.split('-')[0] %><% } else { %><i class="fa-solid fa-triangle-exclamation bad"></i> <%= t('admin.not_found') %><% } %></div></div>
+            <div class="adm-stat"><div class="k"><%= t('admin.torrent_engine') %></div><div class="v"><% if (system.torrents.enabled) { %><i class="fa-solid fa-circle-check ok"></i> <%= t('admin.running') %><% } else { %><i class="fa-solid fa-circle-xmark bad"></i> <%= t('admin.off') %><% } %></div><p><%= t('admin.torrent_stats', { active: system.torrents.active, total: system.torrents.total }) %><% if (system.torrents.reason) { %> — <%= system.torrents.reason %><% } %></p></div>
+            <div class="adm-stat"><div class="k"><%= t('admin.storage') %></div><div class="v"><%= fmtB(system.disk.free) %> <small style="font-weight:400;color:#8c8c8c"><%= t('admin.free_of', { total: fmtB(system.disk.total) }) %></small></div><p><%= system.dirs.downloads %></p></div>
+            <div class="adm-stat"><div class="k"><%= t('admin.metadata') %></div><div class="v"><% if (system.tmdbOn) { %><i class="fa-solid fa-circle-check ok"></i> TMDB<% } else { %><i class="fa-solid fa-circle-minus bad"></i> <%= t('admin.off') %><% } %></div></div>
+            <div class="adm-stat"><div class="k"><%= t('admin.background_jobs') %></div><div class="v"><%= system.jobs.queued.length + (system.jobs.running ? 1 : 0) %></div><p><%= system.jobs.running || t('admin.idle') %></p></div>
+            <div class="adm-stat"><div class="k"><%= t('admin.live_conversions') %></div><div class="v"><%= system.transcodes %></div></div>
+            <div class="adm-stat"><div class="k">Node.js</div><div class="v"><%= system.node %></div><p><%= t('admin.subtitles_count', { n: system.subCount }) %></p></div>
+        </div>
+        <div class="adm-card" style="margin-top:1.4rem">
+            <h2><i class="fa-regular fa-folder-open"></i> <%= t('admin.folders') %></h2>
+            <table class="adm-table"><tbody>
+                <% Object.entries(system.dirs).forEach(function (e) { %><tr><td data-label=""><%= e[0] %></td><td><code><%= e[1] %></code></td></tr><% }) %>
+            </tbody></table>
+        </div>
+    </section>
+</main>
+<%- include('partials/overlays') %>
+<script>window.__adm = <%- jsonScript({ i18n: dict.admin || {} }) %>;</script>
+<%- include('partials/scripts') %>
+<script src="/js/admin.js?v=<%= assetVersion %>"></script>
 </body>
 </html>

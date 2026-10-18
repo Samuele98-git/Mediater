@@ -3,50 +3,53 @@
 # ==============================================================
 
 # ---------- 1. Builder ----------
-FROM node:20-slim AS builder
+FROM node:22-slim AS builder
 WORKDIR /app
 
-# Install OS deps Prisma needs at build/run time
+# openssl: Prisma. python3/make/g++: fallback for native modules without prebuilds.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    openssl ca-certificates \
+    openssl ca-certificates python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 COPY prisma ./prisma
-RUN npm ci --ignore-scripts --no-audit --no-fund \
+# Install scripts must run: the torrent client's WebRTC module downloads a native binary.
+RUN npm ci --omit=dev --no-audit --no-fund \
  && npx prisma generate
 
 # Copy the rest of the source after deps are cached
 COPY . .
 
 # ---------- 2. Runtime ----------
-FROM node:20-slim AS runtime
+FROM node:22-slim AS runtime
 
 ENV NODE_ENV=production \
     PORT=3000 \
     HOST=0.0.0.0 \
+    DATA_DIR=/data \
     UPLOAD_DIR=/data/uploads \
-    SESSION_DIR=/data/sessions \
-    DATABASE_URL=file:/data/mediater.db
+    DATABASE_URL=file:/data/mediater.db \
+    TORRENT_PORT=6881 \
+    TORRENT_UPNP=false
 
 WORKDIR /app
 
+# ffmpeg: plays MKV/AVI/HEVC/AC3/DTS files in any browser, thumbnails, subtitles.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    openssl ca-certificates curl tini \
+    openssl ca-certificates curl tini ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy app + node_modules from builder
 COPY --from=builder /app /app
 
 # Persist data outside the image
-RUN mkdir -p /data/uploads/images /data/uploads/videos /data/sessions \
+RUN mkdir -p /data/uploads/images /data/uploads/videos /data/downloads /data/cache \
  && chown -R node:node /data /app
 
 USER node
-EXPOSE 3000
+EXPOSE 3000 6881 6881/udp
 VOLUME ["/data"]
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl -fsS http://127.0.0.1:3000/healthz || exit 1
 
 # tini = small init for clean PID 1 / proper signal forwarding

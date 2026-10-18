@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+    <%- include('partials/head') %>
+    <title><%= pageType === 'movies' ? t('nav.movies') : pageType === 'series' ? t('nav.tv_shows') : pageType === 'latest' ? t('nav.new_popular') : genre ? genre : t('nav.home') %> – <%= APP_NAME %></title>
+</head>
+<body class="page-<%= pageType %>">
+    <%- include('partials/nav') %>
+
+    <main class="nf-main">
+        <% if (pageType === 'movies' || pageType === 'series' || pageType === 'genre') { %>
+            <div class="nf-subnav">
+                <h1><%= pageType === 'genre' ? genre : (pageType === 'movies' ? t('nav.movies') : t('nav.tv_shows')) %><% if (genre && pageType !== 'genre') { %> <small><%= genre %></small><% } %></h1>
+                <% if (genres.length) { %>
+                <div class="nf-genre-select" id="nfGenreSelect">
+                    <button type="button"><%= genre || t('browse.genres') %> <i class="fa-solid fa-caret-down"></i></button>
+                    <div class="nf-genre-menu">
+                        <% const typeQ = pageType === 'movies' ? '?type=movie' : pageType === 'series' ? '?type=series' : ''; %>
+                        <% genres.forEach(function (g) { %><a href="/browse/genre/<%= encodeURIComponent(g.name) %><%= typeQ %>"><%= g.name %></a><% }) %>
+                    </div>
+                </div>
+                <% } %>
+            </div>
+        <% } %>
+
+        <% if (emptyLibrary) { %>
+            <section class="nf-welcome">
+                <div>
+                    <h1><%= t('home.empty_title') %></h1>
+                    <% if (canAdmin) { %>
+                        <p><%= t('home.empty_admin_hint') %></p>
+                        <div class="actions">
+                            <a href="/downloads" class="nf-btn nf-btn-red"><i class="fa-solid fa-magnet"></i> <%= t('home.add_torrent') %></a>
+                            <a href="/admin/title/new" class="nf-btn nf-btn-white"><i class="fa-solid fa-plus"></i> <%= t('home.add_content') %></a>
+                        </div>
+                    <% } else { %>
+                        <p><%= t('home.empty_viewer_hint') %></p>
+                    <% } %>
+                </div>
+            </section>
+        <% } else { %>
+            <% if (hero) { %><%- include('partials/billboard') %><% } %>
+            <div class="nf-lolomo<%= hero ? '' : ' no-billboard' %>">
+                <% if (!hero && typeof pageTitle !== 'undefined' && pageTitle) { %><h1 class="nf-page-title"><%= pageTitle %></h1><% } %>
+                <% rows.forEach(function (row) { %><%- include('partials/row', { row: row }) %><% }) %>
+                <% if (!rows.length) { %>
+                    <div class="nf-empty"><i class="fa-solid fa-film"></i><h2><%= t('browse.nothing_here') %></h2><p><%= t('browse.nothing_here_hint') %></p><a href="/" class="nf-btn nf-btn-white"><%= t('nav.home') %></a></div>
+                <% } %>
+            </div>
+        <% } %>
+    </main>
+
+    <%- include('partials/footer') %>
+    <%- include('partials/tabbar') %>
+    <%- include('partials/overlays') %>
+    <%- include('partials/scripts') %>
+</body>
+</html>

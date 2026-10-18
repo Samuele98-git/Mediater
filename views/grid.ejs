@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+    <%- include('partials/head') %>
+    <title><%= mode === 'mylist' ? t('nav.my_list') : (q ? t('search.results_for') + ' ' + q : t('nav.search')) %> – <%= APP_NAME %></title>
+</head>
+<body class="page-<%= mode %>">
+    <%- include('partials/nav', { pageType: mode === 'mylist' ? 'mylist' : 'search' }) %>
+
+    <main class="nf-grid-page">
+        <% if (mode === 'mylist') { %>
+            <h1><%= t('nav.my_list') %></h1>
+            <% if (items.length) { %>
+                <div class="nf-grid" id="nfGrid">
+                    <% items.forEach(function (id) { %><%- cardHtml(titles[id], { kind: 'grid', t: t }) %><% }) %>
+                </div>
+            <% } else { %>
+                <div class="nf-empty">
+                    <i class="fa-solid fa-plus"></i>
+                    <h2><%= t('mylist.empty_title') %></h2>
+                    <p><%= t('mylist.empty_hint') %></p>
+                    <a href="/" class="nf-btn nf-btn-white"><%= t('mylist.browse') %></a>
+                </div>
+            <% } %>
+        <% } else { %>
+            <div id="nfSearchPage" data-q="<%= q %>">
+                <div class="nf-related" id="nfRelated"<%= related.length ? '' : ' hidden' %>><% if (related.length) { %><span><%= t('client.explore_related') %></span><% related.forEach(function (g) { %><a href="/browse/genre/<%= encodeURIComponent(g) %>"><%= g %></a><% }) } %></div>
+                <div id="nfSearchResults">
+                    <% if (q && items.length) { %>
+                        <div class="nf-grid">
+                            <% items.forEach(function (id) { %><%- cardHtml(titles[id], { kind: 'grid', t: t }) %><% }) %>
+                        </div>
+                    <% } else if (q) { %>
+                        <div class="nf-search-hint">
+                            <p><%= t('search.no_results_for', { q: q }) %></p>
+                            <%= t('search.suggestions') %>
+                            <ul><li><%= t('search.tip_keywords') %></li><li><%= t('search.tip_title') %></li><li><%= t('search.tip_genre') %></li></ul>
+                        </div>
+                    <% } else { %>
+                        <% if (genres.length) { %>
+                            <h2><%= t('search.browse_genres') %></h2>
+                            <div class="nf-related"><% genres.forEach(function (g) { %><a href="/browse/genre/<%= encodeURIComponent(g) %>"><%= g %></a><% }) %></div>
+                        <% } %>
+                        <% if (suggestions.length) { %>
+                            <h2><%= t('search.top_searches') %></h2>
+                            <div class="nf-grid">
+                                <% suggestions.forEach(function (id) { %><%- cardHtml(titles[id], { kind: 'grid', t: t }) %><% }) %>
+                            </div>
+                        <% } %>
+                    <% } %>
+                </div>
+            </div>
+        <% } %>
+    </main>
+
+    <%- include('partials/footer') %>
+    <%- include('partials/tabbar', { pageType: mode === 'mylist' ? 'mylist' : 'search' }) %>
+    <%- include('partials/overlays') %>
+    <%- include('partials/scripts') %>
+</body>
+</html>

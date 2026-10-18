@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+    <%- include('partials/head') %>
+    <title><%= manage ? t('profiles.manage_title') : t('profiles.whos_watching') %> – <%= APP_NAME %></title>
+</head>
+<body class="nf-profiles-page" style="padding-bottom:0">
+    <header class="nf-plain-head"><a href="/" class="nf-logo"><%= APP_NAME %></a></header>
+    <main class="nf-gate">
+        <h1><%= manage ? t('profiles.manage_title') : t('profiles.whos_watching') %></h1>
+        <ul class="nf-gate-list">
+            <% profiles.forEach(function (p) { %>
+                <li class="nf-gate-item">
+                    <% if (manage) { %>
+                        <a href="/profiles/<%= p.id %>/edit" aria-label="<%= t('profiles.edit') %> <%= displayName(p) %>" <% if (p.pin) { %>data-lock="<%= p.id %>" data-mode="edit"<% } %>>
+                            <span class="nf-gate-avatar"><img src="<%= avatarUrl(p) %>" alt=""><span class="nf-gate-edit"><i class="fa-solid fa-pencil"></i></span></span>
+                            <span class="nf-gate-name"><%= displayName(p) %></span>
+                            <% if (p.pin) { %><span class="nf-gate-lock" title="<%= t('profiles.locked') %>"><i class="fa-solid fa-lock"></i></span><% } %>
+                        </a>
+                    <% } else { %>
+                        <form method="POST" action="/profiles/select/<%= p.id %>">
+                            <input type="hidden" name="next" value="<%= next %>">
+                            <button type="submit" <% if (p.pin) { %>data-lock="<%= p.id %>" data-mode="select"<% } %>>
+                                <span class="nf-gate-avatar"><img src="<%= avatarUrl(p) %>" alt=""><% if (p.isKids && avatarUrl(p) !== '/img/avatars/kids.svg') { %><span class="nf-gate-kids"><%= t('profiles.kids') %></span><% } %></span>
+                                <span class="nf-gate-name"><%= displayName(p) %></span>
+                                <% if (p.pin) { %><span class="nf-gate-lock" title="<%= t('profiles.locked') %>"><i class="fa-solid fa-lock"></i></span><% } %>
+                            </button>
+                        </form>
+                    <% } %>
+                </li>
+            <% }) %>
+            <% if (profiles.length < maxProfiles) { %>
+                <li class="nf-gate-item nf-gate-add">
+                    <a href="/profiles/new">
+                        <span class="nf-gate-avatar"><i class="fa-solid fa-circle-plus"></i></span>
+                        <span class="nf-gate-name"><%= t('profiles.add') %></span>
+                    </a>
+                </li>
+            <% } %>
+        </ul>
+        <% if (manage) { %>
+            <a href="/profiles?next=<%= encodeURIComponent(next) %>" class="nf-gate-manage done"><%= t('profiles.done') %></a>
+        <% } else { %>
+            <a href="/profiles?manage=1" class="nf-gate-manage"><%= t('profiles.manage') %></a>
+        <% } %>
+    </main>
+
+    <!-- Profile Lock: PIN entry (like Netflix) -->
+    <div class="nf-pin" id="nfPin" hidden role="dialog" aria-modal="true" aria-labelledby="nfPinTitle">
+        <button type="button" class="nf-pin-close" aria-label="<%= t('common.close') %>"><i class="fa-solid fa-xmark"></i></button>
+        <div class="nf-pin-box">
+            <p class="nf-pin-status"><%= t('profiles.lock_on') %></p>
+            <h2 id="nfPinTitle"><%= t('profiles.enter_pin') %></h2>
+            <div class="nf-pin-inputs" id="nfPinInputs">
+                <% for (let i = 0; i < 4; i++) { %><input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="PIN <%= i + 1 %>"><% } %>
+            </div>
+            <p class="nf-pin-error" id="nfPinError" role="alert" hidden></p>
+            <% if (hasPassword) { %>
+                <button type="button" class="nf-pin-forgot" id="nfPinForgot"><%= t('profiles.forgot_pin') %></button>
+                <form class="nf-pin-reset" id="nfPinReset" hidden>
+                    <p><%= t('profiles.reset_hint') %></p>
+                    <input type="password" name="password" placeholder="<%= t('profiles.account_password') %>" autocomplete="current-password" required>
+                    <button type="submit" class="nf-btn nf-btn-white"><%= t('profiles.reset_pin') %></button>
+                </form>
+            <% } %>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        var T = <%- jsonScript({ wrong: t('profiles.wrong_pin'), locked: t('profiles.too_many'), password: t('profiles.err_password') }) %>;
+        var NEXT = <%- jsonScript(next) %>;
+        var OPEN = <%- jsonScript(openLock) %>;
+        var MANAGE = <%- jsonScript(manage) %>;
+        var modal = document.getElementById('nfPin');
+        var inputs = Array.prototype.slice.call(document.querySelectorAll('#nfPinInputs input'));
+        var err = document.getElementById('nfPinError');
+        var current = null, mode = 'select', busy = false;
+
+        function open(id, m) {
+            current = id; mode = m || 'select';
+            modal.hidden = false;
+            inputs.forEach(function (i) { i.value = ''; });
+            err.hidden = true;
+            var reset = document.getElementById('nfPinReset');
+            if (reset) reset.hidden = true;
+            setTimeout(function () { inputs[0].focus(); }, 30);
+        }
+        function close() { modal.hidden = true; current = null; }
+        function fail(msg) {
+            err.textContent = msg; err.hidden = false;
+            var box = document.getElementById('nfPinInputs');
+            box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+            inputs.forEach(function (i) { i.value = ''; });
+            inputs[0].focus();
+        }
+        function submit() {
+            var pin = inputs.map(function (i) { return i.value; }).join('');
+            if (pin.length < 4 || busy || current == null) return;
+            busy = true;
+            var url = mode === 'edit' ? '/profiles/' + current + '/unlock' : '/profiles/select/' + current;
+            fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ pin: pin, next: NEXT }) })
+                .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+                .then(function (res) {
+                    busy = false;
+                    if (res.ok) { location.href = res.j.next || '/'; return; }
+                    fail(res.j.error === 'locked' ? T.locked.replace('{n}', res.j.minutes || 5) : T.wrong);
+                })
+                .catch(function () { busy = false; fail(T.wrong); });
+        }
+        inputs.forEach(function (input, idx) {
+            input.addEventListener('input', function () {
+                input.value = input.value.replace(/\D/g, '').slice(-1);
+                if (input.value && idx < 3) inputs[idx + 1].focus();
+                if (inputs.every(function (i) { return i.value; })) submit();
+            });
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Backspace' && !input.value && idx > 0) { inputs[idx - 1].focus(); inputs[idx - 1].value = ''; }
+                if (e.key === 'Escape') close();
+            });
+            input.addEventListener('paste', function (e) {
+                var digits = ((e.clipboardData && e.clipboardData.getData('text')) || '').replace(/\D/g, '').slice(0, 4);
+                if (!digits) return;
+                e.preventDefault();
+                inputs.forEach(function (i, k) { i.value = digits[k] || ''; });
+                if (digits.length === 4) submit(); else inputs[digits.length].focus();
+            });
+        });
+        document.querySelectorAll('[data-lock]').forEach(function (el) {
+            el.addEventListener('click', function (e) { e.preventDefault(); open(el.getAttribute('data-lock'), el.getAttribute('data-mode')); });
+        });
+        modal.querySelector('.nf-pin-close').addEventListener('click', close);
+        var forgot = document.getElementById('nfPinForgot');
+        if (forgot) forgot.addEventListener('click', function () { document.getElementById('nfPinReset').hidden = false; document.querySelector('#nfPinReset input').focus(); });
+        var reset = document.getElementById('nfPinReset');
+        if (reset) reset.addEventListener('submit', function (e) {
+            e.preventDefault();
+            fetch('/profiles/' + current + '/reset-pin', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ password: reset.password.value }) })
+                .then(function (r) {
+                    if (!r.ok) { fail(T.password); return; }
+                    location.href = mode === 'edit' ? '/profiles/' + current + '/edit' : '/profiles?next=' + encodeURIComponent(NEXT);
+                });
+        });
+        if (OPEN != null) open(String(OPEN), MANAGE ? 'edit' : 'select');
+    })();
+    </script>
+</body>
+</html>

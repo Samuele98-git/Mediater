@@ -1,0 +1,13 @@
+<%
+const tpt = typeof pageType !== 'undefined' ? pageType : '';
+const tAdmin = !!canAdmin;
+%>
+<nav class="nf-tabbar" aria-label="<%= t('nav.browse') %>">
+    <a href="/" class="<%= ['home', 'series', 'movies', 'genre'].includes(tpt) ? 'active' : '' %>"><i class="fa-solid fa-house"></i><span><%= t('nav.home') %></span></a>
+    <a href="/latest" class="<%= tpt === 'latest' ? 'active' : '' %>"><i class="fa-solid fa-fire-flame-curved"></i><span><%= t('nav.new_hot') %></span></a>
+    <a href="/search" class="<%= tpt === 'search' ? 'active' : '' %>"><i class="fa-solid fa-magnifying-glass"></i><span><%= t('nav.search') %></span></a>
+    <% if (tAdmin) { %>
+        <a href="/downloads" class="<%= tpt === 'downloads' ? 'active' : '' %>" id="nfTabDl"><i class="fa-solid fa-download"></i><span><%= t('nav.downloads') %></span><span class="nf-icon-badge" hidden></span></a>
+    <% } %>
+    <a href="/browse/my-list" class="<%= tpt === 'mylist' ? 'active' : '' %>"><img src="<%= avatarUrl(profile) %>" alt=""><span><%= t('nav.my_list') %></span></a>
+</nav>

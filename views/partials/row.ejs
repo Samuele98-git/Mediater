@@ -1,0 +1,20 @@
+<%
+const withPosters = row.items.filter(function (i) { return titles[i.id] && titles[i.id].poster; }).length >= Math.max(1, row.items.length * 0.6);
+%>
+<section class="nf-row nf-row--<%= row.kind %><%= withPosters && row.kind === 'standard' ? ' posters' : '' %>" data-row="<%= row.key %>">
+    <h2 class="nf-row-header">
+        <% if (row.link) { %>
+            <a href="<%= row.link %>" class="nf-row-title"><span><%= row.title %></span><span class="nf-row-explore"><%= t('rows.explore_all') %> <i class="fa-solid fa-chevron-right"></i></span></a>
+        <% } else { %>
+            <span class="nf-row-title"><%= row.title %></span>
+        <% } %>
+    </h2>
+    <div class="nf-slider">
+        <button class="nf-slider-handle prev off" type="button" aria-label="<%= t('common.previous') %>"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="nf-slider-track">
+            <% row.items.forEach(function (it, i) { %><%- cardHtml(titles[it.id], { kind: row.kind, rank: i + 1, item: it, t: t }) %><% }) %>
+        </div>
+        <button class="nf-slider-handle next" type="button" aria-label="<%= t('common.next') %>"><i class="fa-solid fa-chevron-right"></i></button>
+        <ul class="nf-pagination" aria-hidden="true"></ul>
+    </div>
+</section>

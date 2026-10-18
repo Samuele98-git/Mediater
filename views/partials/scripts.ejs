@@ -1,0 +1,11 @@
+<script>
+window.__nf = {
+    titles: <%- jsonScript(typeof titles !== 'undefined' ? titles : {}) %>,
+    openTitle: <%- jsonScript(typeof openTitle !== 'undefined' ? openTitle : null) %>,
+    isAdmin: <%- jsonScript(!!canAdmin) %>,
+    lang: <%- jsonScript(lang) %>,
+    app: <%- jsonScript(APP_NAME) %>,
+    i18n: <%- jsonScript(dict.client || {}) %>
+};
+</script>
+<script src="/js/netflix.js?v=<%= assetVersion %>"></script>

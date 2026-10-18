@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+    <%- include('partials/head', { extraCss: 'downloads' }) %>
+    <title><%= t('nav.downloads') %> – <%= APP_NAME %></title>
+</head>
+<body class="page-downloads">
+    <%- include('partials/nav', { pageType: 'downloads' }) %>
+
+    <main class="dl-page">
+        <div class="dl-head">
+            <div>
+                <h1><%= t('downloads.title') %></h1>
+                <div class="dl-summary" id="dlSummary">
+                    <span><i class="fa-solid fa-arrow-down"></i><b id="dlDown">0 B/s</b></span>
+                    <span id="dlActive"></span>
+                </div>
+                <p class="dl-note"><i class="fa-solid fa-shield-halved"></i> <%= t('downloads.download_only') %></p>
+            </div>
+            <div class="dl-actions">
+                <button class="nf-btn" type="button" id="dlProtocol" title="<%= t('downloads.handle_magnets_hint') %>"><i class="fa-solid fa-link"></i> <%= t('downloads.handle_magnets') %></button>
+                <button class="nf-btn nf-btn-red" type="button" id="dlAddBtn" <%= enabled ? '' : 'disabled' %>><i class="fa-solid fa-plus"></i> <%= t('downloads.add') %></button>
+            </div>
+        </div>
+        <div class="dl-disk" id="dlDisk">
+            <div class="bar"><span></span></div>
+            <small><span id="dlDiskText"></span><span id="dlDiskPath" title="<%= disk.path %>"></span></small>
+        </div>
+
+        <% if (!enabled) { %>
+            <div class="nf-alert err"><i class="fa-solid fa-triangle-exclamation"></i> <%= t('downloads.disabled') %> <% if (reason) { %>(<%= reason %>)<% } %></div>
+        <% } %>
+        <% if (!tmdbOn) { %>
+            <div class="nf-alert info"><i class="fa-solid fa-wand-magic-sparkles"></i> <span><%- t('downloads.tmdb_hint', { link: '<a href="/admin?tab=settings" style="text-decoration:underline">' + esc(t('admin.settings')) + '</a>' }) %></span></div>
+        <% } %>
+
+        <div class="dl-tabs" id="dlTabs">
+            <button type="button" data-f="all" class="on"><%= t('downloads.filter_all') %><span></span></button>
+            <button type="button" data-f="active"><%= t('downloads.filter_active') %><span></span></button>
+            <button type="button" data-f="paused"><%= t('downloads.filter_paused') %><span></span></button>
+            <button type="button" data-f="completed"><%= t('downloads.filter_completed') %><span></span></button>
+        </div>
+        <div class="dl-list" id="dlList"></div>
+        <div class="dl-empty" id="dlEmpty" hidden>
+            <i class="fa-solid fa-magnet"></i>
+            <h2><%= t('downloads.empty_title') %></h2>
+            <p><%= t('downloads.empty_text') %></p>
+            <button class="nf-btn nf-btn-white" type="button" data-open-add <%= enabled ? '' : 'disabled' %>><i class="fa-solid fa-plus"></i> <%= t('downloads.add') %></button>
+        </div>
+    </main>
+
+    <div class="dl-dropzone"><i class="fa-solid fa-file-arrow-down"></i> <%= t('downloads.drop_here') %></div>
+
+    <!-- add / preview dialog -->
+    <div class="dl-modal" id="dlAddModal" hidden>
+        <div class="dl-dialog" role="dialog" aria-modal="true">
+            <header><h2 id="dlAddTitle"><%= t('downloads.add') %></h2><button class="x" type="button" data-close aria-label="<%= t('common.close') %>"><i class="fa-solid fa-xmark"></i></button></header>
+            <div class="content" id="dlStepSource">
+                <textarea class="dl-input" id="dlMagnet" placeholder="<%= t('downloads.magnet_placeholder') %>" spellcheck="false"><%= initialMagnet %></textarea>
+                <div class="dl-or"><%= t('login.or') %></div>
+                <label class="dl-filepick" id="dlFilePick"><i class="fa-solid fa-file-arrow-up"></i> <span id="dlFileLabel"><%= t('downloads.choose_file') %></span><input type="file" id="dlFile" accept=".torrent,application/x-bittorrent"></label>
+                <p class="dl-hint"><%= t('downloads.legal_hint') %></p>
+                <div class="dl-error" id="dlSourceErr" hidden></div>
+            </div>
+            <div class="content" id="dlStepWait" hidden>
+                <div class="dl-wait"><div class="nf-spinner"></div><b><%= t('downloads.fetching') %></b><span id="dlWaitInfo"></span></div>
+            </div>
+            <div class="content" id="dlStepPreview" hidden>
+                <div class="dl-preview">
+                    <aside class="dl-match" id="dlMatch"></aside>
+                    <section>
+                        <div style="font-weight:700;font-size:1.1rem;word-break:break-word" id="dlName"></div>
+                        <div class="dl-meta-line" id="dlMeta"></div>
+                        <div style="color:#b3b3b3;font-size:.85rem"><%= t('downloads.add_as') %></div>
+                        <div class="dl-kinds" id="dlKinds">
+                            <button type="button" data-kind="movie"><i class="fa-solid fa-film"></i> <%= t('downloads.kind_movie') %></button>
+                            <button type="button" data-kind="series"><i class="fa-solid fa-tv"></i> <%= t('downloads.kind_series') %></button>
+                            <button type="button" data-kind="other"><i class="fa-regular fa-folder"></i> <%= t('downloads.kind_other') %></button>
+                        </div>
+                        <div class="dl-filelist" id="dlFiles"></div>
+                        <label class="dl-toggle"><input type="checkbox" id="dlAutoImport" checked> <%= t('downloads.auto_import') %></label>
+                    </section>
+                </div>
+                <div class="dl-error" id="dlStartErr" hidden></div>
+            </div>
+            <footer id="dlFooter">
+                <span class="left" id="dlFooterInfo"></span>
+                <button class="nf-btn" type="button" data-close id="dlCancel"><%= t('admin.cancel') %></button>
+                <button class="nf-btn" type="button" id="dlStream" hidden><i class="fa-solid fa-play"></i> <%= t('downloads.stream_now') %></button>
+                <button class="nf-btn nf-btn-red" type="button" id="dlNext"><%= t('downloads.continue') %></button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- remove dialog -->
+    <div class="dl-modal" id="dlRemoveModal" hidden>
+        <div class="dl-dialog small" role="dialog" aria-modal="true">
+            <header><h2><%= t('downloads.remove_title') %></h2><button class="x" type="button" data-close aria-label="<%= t('common.close') %>"><i class="fa-solid fa-xmark"></i></button></header>
+            <div class="content">
+                <p id="dlRemoveName" style="color:#ddd;word-break:break-word;margin:0 0 1rem"></p>
+                <label class="dl-toggle"><input type="checkbox" id="dlRemoveFiles"> <%= t('downloads.remove_files') %></label>
+                <p class="dl-hint" id="dlRemoveHint"><%= t('downloads.remove_hint') %></p>
+            </div>
+            <footer>
+                <button class="nf-btn" type="button" data-close><%= t('admin.cancel') %></button>
+                <button class="nf-btn nf-btn-red" type="button" id="dlRemoveGo"><i class="fa-solid fa-trash"></i> <%= t('downloads.remove') %></button>
+            </footer>
+        </div>
+    </div>
+
+    <%- include('partials/tabbar', { pageType: 'downloads' }) %>
+    <%- include('partials/overlays') %>
+    <script>
+        window.__dl = <%- jsonScript({ i18n: dict.downloads || {}, disk: disk, initialMagnet: initialMagnet, tmdbOn: tmdbOn }) %>;
+    </script>
+    <%- include('partials/scripts') %>
+    <script src="/js/downloads.js?v=<%= assetVersion %>"></script>
+</body>
+</html>

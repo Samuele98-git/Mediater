@@ -12,14 +12,15 @@ yarn-error.log*
 # Generated Prisma client
 /generated/prisma
 
-# Runtime data
-sessions/
+# Runtime data (database, uploads, downloads, caches)
 data/
+sessions/
 public/uploads/
+backups/
 *.db
 *.db-journal
-sessions.db
-sessions/
+*.db-wal
+*.db-shm
 
 # Logs
 logs/

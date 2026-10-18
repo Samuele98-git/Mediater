@@ -3,6 +3,7 @@
 # ==============================================================
 # Usage:  .\scripts\start.ps1
 #   - Runs setup if needed
+#   - Applies database schema changes
 #   - Forces NODE_ENV=production
 #   - Starts under PM2 if available, otherwise plain node
 $ErrorActionPreference = "Stop"
@@ -14,6 +15,8 @@ if (-not (Test-Path "node_modules") -or -not (Test-Path ".env")) {
 }
 
 $env:NODE_ENV = "production"
+node scripts/migrate.mjs
+if ($LASTEXITCODE -ne 0) { Write-Error "Database setup failed"; exit 1 }
 
 if (Get-Command pm2 -ErrorAction SilentlyContinue) {
     Write-Host "==> Starting Mediater via PM2"

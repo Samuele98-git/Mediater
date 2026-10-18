@@ -9,15 +9,19 @@ npm-debug.log
 # Local runtime data — should live in a volume, not the image
 sessions
 data
+backups
 public/uploads
 *.db
 *.db-journal
-sessions.db
+*.db-wal
+*.db-shm
 
 # Tooling / docs not needed in the image
 Readme.md
 README.md
+docs
 imgxtx
+my-media-server
 .vscode
 .idea
 .DS_Store
@@ -30,4 +34,3 @@ docker-compose.yml
 .dockerignore
 Makefile
 ecosystem.config.cjs
-scripts

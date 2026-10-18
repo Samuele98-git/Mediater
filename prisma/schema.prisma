@@ -4,8 +4,12 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
+
+// NOTE: every change here must stay additive (new optional columns, columns
+// with defaults, new tables) so `prisma db push` can upgrade existing
+// installs without data loss.
 
 model User {
   id            Int             @id @default(autoincrement())
@@ -14,31 +18,66 @@ model User {
   role          String          @default("viewer")
   avatar        String?
   auth_provider String          @default("local")
+  // SSO accounts: "<issuer>|<subject>" from the identity provider (never matched by username).
+  // A plain index (not @unique) so upgrading existing databases needs no confirmation.
+  oidcSubject   String?
   created_at    DateTime        @default(now())
+  // "Who's watching?" profiles. The account itself is the first profile;
+  // extra profiles are User rows pointing at the account through parentId.
+  // They have no password and can never sign in on their own.
+  parentId      Int?
+  parent        User?           @relation("AccountProfiles", fields: [parentId], references: [id], onDelete: Cascade)
+  profiles      User[]          @relation("AccountProfiles")
+  displayName   String?
+  isKids        Boolean         @default(false)
+  // Profile Lock: bcrypt hash of a 4-digit PIN asked when choosing this profile.
+  pin           String?
   progress      WatchProgress[]
   myList        MyListItem[]
+  ratings       Rating[]
+
+  @@index([oidcSubject])
 }
 
 model Media {
-  id          Int             @id @default(autoincrement())
-  title       String
-  description String?
-  path        String?
-  thumbnail   String?
-  backdrop    String?
-  logoUrl     String?
-  category    String          @default("General")
-  genres      String          @default("")
-  type        String          @default("movie")
-  parentId    Int?
-  order       Int             @default(0)
-  releaseYear Int?
-  duration    Int?
-  maturity    String?
-  trending    Boolean         @default(false)
-  created_at  DateTime        @default(now())
-  progress    WatchProgress[]
-  inLists     MyListItem[]
+  id           Int             @id @default(autoincrement())
+  title        String
+  description  String?
+  path         String?
+  thumbnail    String?
+  poster       String?
+  backdrop     String?
+  logoUrl      String?
+  trailerUrl   String?
+  category     String          @default("General")
+  genres       String          @default("")
+  type         String          @default("movie")
+  parentId     Int?
+  season       Int?
+  order        Int             @default(0)
+  releaseYear  Int?
+  duration     Int?
+  maturity     String?
+  trending     Boolean         @default(false)
+  tagline      String?
+  cast         String?
+  director     String?
+  rating       Float?
+  tmdbId       Int?
+  imdbId       String?
+  quality      String?
+  introStart   Int?
+  introEnd     Int?
+  creditsStart Int?
+  probe        String?
+  torrentId    Int?
+  fileIndex    Int?
+  torrent      Torrent?        @relation(fields: [torrentId], references: [id], onDelete: SetNull)
+  created_at   DateTime        @default(now())
+  progress     WatchProgress[]
+  inLists      MyListItem[]
+  ratings      Rating[]
+  subtitles    Subtitle[]
 }
 
 model WatchProgress {
@@ -65,7 +104,62 @@ model MyListItem {
   @@unique([userId, mediaId])
 }
 
+// Thumbs: -1 = not for me, 1 = I like this, 2 = love this
+model Rating {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  mediaId   Int
+  value     Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mediaId])
+}
+
+model Subtitle {
+  id      Int    @id @default(autoincrement())
+  mediaId Int
+  lang    String @default("und")
+  label   String
+  path    String
+  media   Media  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+}
+
+model Torrent {
+  id          Int       @id @default(autoincrement())
+  infoHash    String    @unique
+  name        String
+  magnetURI   String?
+  torrentFile String?
+  // metadata | pending | downloading | paused | seeding | completed | error
+  status      String    @default("metadata")
+  selected    String    @default("[]")
+  files       String    @default("[]")
+  totalSize   Float     @default(0)
+  downloaded  Float     @default(0)
+  uploaded    Float     @default(0)
+  progress    Float     @default(0)
+  // auto | movie | series | other
+  kind        String    @default("auto")
+  match       String?
+  autoImport  Boolean   @default(true)
+  error       String?
+  addedById   Int?
+  addedAt     DateTime  @default(now())
+  completedAt DateTime?
+  media       Media[]
+}
+
 model Setting {
   key   String @id
   value String
+}
+
+model Session {
+  sid       String   @id
+  data      String
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }

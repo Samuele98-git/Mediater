@@ -1,7 +1,8 @@
 # ==============================================================
 # Mediater — one-shot setup script (Windows PowerShell)
 # ==============================================================
-# Creates .env, installs deps, generates Prisma client, runs migrations.
+# Creates .env, installs/updates deps, applies the database schema.
+# Safe to run again after every update (git pull).
 $ErrorActionPreference = "Stop"
 
 Set-Location (Join-Path $PSScriptRoot "..")
@@ -10,13 +11,13 @@ Write-Host "==> Mediater setup ($Root)"
 
 # 1) Node sanity check
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    Write-Error "node is not installed. Get Node 18+ from https://nodejs.org/"
+    Write-Error "node is not installed. Get Node 22+ from https://nodejs.org/ (or: winget install OpenJS.NodeJS.LTS)"
     exit 1
 }
 $nodeMajor = [int]((node -p "process.versions.node.split('.')[0]"))
-if ($nodeMajor -lt 18) {
+if ($nodeMajor -lt 22) {
     $v = node -v
-    Write-Error "Node 18 or newer is required (you have $v)."
+    Write-Error "Node 22 or newer is required (you have $v)."
     exit 1
 }
 
@@ -35,24 +36,30 @@ if ($envText -match '(?m)^SESSION_SECRET=\s*$') {
     Write-Host "==> Generated SESSION_SECRET in .env"
 }
 
-# 4) Dependencies
-if (-not (Test-Path "node_modules")) {
-    Write-Host "==> Installing dependencies"
-    npm install
-} else {
-    Write-Host "==> Dependencies already installed (skip)"
-}
+# 4) Dependencies (always: picks up new ones after an update)
+Write-Host "==> Installing dependencies"
+npm install --no-audit --no-fund
+if ($LASTEXITCODE -ne 0) { Write-Error "npm install failed"; exit 1 }
 
-# 5) Prisma
-Write-Host "==> Generating Prisma client"
-npx prisma generate
+# 5) Database
 Write-Host "==> Applying database schema"
-npx prisma db push
+node scripts/migrate.mjs
+if ($LASTEXITCODE -ne 0) { Write-Error "Database setup failed"; exit 1 }
+
+# 6) ffmpeg (optional but strongly recommended)
+if ((Get-Command ffmpeg -ErrorAction SilentlyContinue) -and (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
+    Write-Host "==> ffmpeg found"
+} else {
+    Write-Host ""
+    Write-Host "[!] ffmpeg was not found. Mediater works without it, but only MP4/WebM files" -ForegroundColor Yellow
+    Write-Host "    will play. Install it to play MKV/AVI/HEVC/AC3 and get thumbnails:" -ForegroundColor Yellow
+    Write-Host "      winget install Gyan.FFmpeg      (then open a new terminal)" -ForegroundColor Yellow
+}
 
 Write-Host ""
 Write-Host "Setup complete." -ForegroundColor Green
 Write-Host ""
 Write-Host "   Start in dev:        npm run dev"
-Write-Host "   Start in production: `$env:NODE_ENV='production'; node server.js"
+Write-Host "   Start in production: .\scripts\start.ps1"
 Write-Host "   Run with Docker:     docker compose up -d"
 Write-Host ""

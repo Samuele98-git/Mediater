@@ -36,10 +36,10 @@ dev: ## Start in development mode (auto-reload via nodemon)
 	$(NPM) run dev
 
 start: ## Start in production mode (foreground)
-	NODE_ENV=production $(NODE) server.js
+	NODE_ENV=production $(NPM) start
 
 migrate: ## Apply Prisma schema to the database
-	npx prisma db push
+	$(NODE) scripts/migrate.mjs
 
 generate: ## Regenerate the Prisma client
 	npx prisma generate
@@ -83,17 +83,18 @@ docker-shell: ## Open a shell in the running container
 	$(COMPOSE) exec mediater sh
 
 # ---------- Maintenance ----------
-backup: ## Snapshot uploads + DB + sessions into ./backups/
+backup: ## Snapshot the database, uploads and app data (not downloads) into ./backups/
 	@mkdir -p backups
 	@stamp=$$(date +%Y%m%d-%H%M%S); \
 	 tar czf backups/mediater-$$stamp.tar.gz \
 	  --exclude='./node_modules' --exclude='./backups' \
-	  ./public/uploads ./sessions ./dev.db 2>/dev/null || true; \
+	  --exclude='./data/downloads' --exclude='./data/cache' \
+	  ./public/uploads ./data ./prisma/dev.db ./prisma/dev.db-wal 2>/dev/null || true; \
 	 echo "Backup written to backups/mediater-$$stamp.tar.gz"
 
 clean: ## Remove node_modules + generated Prisma client
 	rm -rf node_modules generated
 
 reset: clean ## Full reset — delete data too (DESTRUCTIVE, asks first)
-	@echo "This will delete: dev.db, sessions/, public/uploads/"
-	@read -p "Type YES to confirm: " ans; [ "$$ans" = "YES" ] && rm -rf dev.db sessions public/uploads/images public/uploads/videos || echo "aborted"
+	@echo "This will delete: prisma/dev.db, data/ (including downloads), public/uploads/"
+	@read -p "Type YES to confirm: " ans; [ "$$ans" = "YES" ] && rm -rf prisma/dev.db prisma/dev.db-wal prisma/dev.db-shm data public/uploads/images public/uploads/videos public/uploads/subtitles || echo "aborted"

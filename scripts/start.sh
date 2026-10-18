@@ -4,6 +4,7 @@
 # ==============================================================
 # Usage:  ./scripts/start.sh
 #   - Runs setup if needed (deps + DB)
+#   - Applies database schema changes
 #   - Forces NODE_ENV=production
 #   - Starts under PM2 if available, otherwise plain node
 set -eu
@@ -16,6 +17,7 @@ if [ ! -d node_modules ] || [ ! -f .env ]; then
 fi
 
 export NODE_ENV=production
+node scripts/migrate.mjs
 
 if command -v pm2 >/dev/null 2>&1; then
     echo "==> Starting Mediater via PM2"

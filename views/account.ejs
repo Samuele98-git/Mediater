@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+    <%- include('partials/head') %>
+    <title><%= t('profile.title') %> – <%= APP_NAME %></title>
+    <style>
+        .acc-grid { display: grid; grid-template-columns: 180px 1fr; gap: 2rem; padding: 1.5rem 0; border-bottom: 1px solid #333; }
+        .acc-grid h2 { font-size: 1rem; color: #8c8c8c; font-weight: 400; margin: 0; text-transform: uppercase; letter-spacing: .05em; }
+        .acc-avatar { position: relative; width: 120px; height: 120px; border-radius: 6px; overflow: hidden; cursor: pointer; }
+        .acc-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .acc-avatar input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .acc-avatar span { position: absolute; inset: auto 0 0 0; background: rgba(0,0,0,.65); font-size: .8rem; text-align: center; padding: .35rem; }
+        .acc-row { display: flex; justify-content: space-between; gap: 1rem; align-items: center; padding: .5rem 0; }
+        .acc-row a { color: #0080ff; }
+        .acc-row a:hover { text-decoration: underline; }
+        @media (max-width: 740px) { .acc-grid { grid-template-columns: 1fr; gap: 1rem; } }
+    </style>
+</head>
+<body class="page-account">
+    <%- include('partials/nav', { pageType: 'account' }) %>
+    <main class="nf-panel-page">
+        <h1><%= t('profile.title') %></h1>
+        <p class="lead"><i class="fa-regular fa-calendar"></i> <%= t('profile.member_since') %> <%= new Date(user.created_at).toLocaleDateString(dateLocale, { year: 'numeric', month: 'long' }) %></p>
+
+        <% if (successMsg) { %><div class="nf-alert ok"><i class="fa-solid fa-circle-check"></i> <%= t('profile.saved') %></div><% } %>
+        <% if (errorKey) { %><div class="nf-alert err"><i class="fa-solid fa-circle-exclamation"></i> <%= t('profile.err_' + errorKey) %></div><% } %>
+
+        <form action="/account/update" method="POST" enctype="multipart/form-data">
+            <section class="acc-grid">
+                <h2><%= t('profile.membership') %></h2>
+                <div>
+                    <div class="acc-row">
+                        <label class="acc-avatar" title="<%= t('profile.change_avatar') %>">
+                            <img id="accAvatar" src="<%= avatarUrl(user) %>" alt="">
+                            <span><i class="fa-solid fa-pen"></i> <%= t('profile.change_avatar') %></span>
+                            <input type="file" name="avatar" accept="image/*" onchange="if(this.files[0]){var r=new FileReader();r.onload=function(e){document.getElementById('accAvatar').src=e.target.result};r.readAsDataURL(this.files[0])}">
+                        </label>
+                        <div style="flex:1">
+                            <div style="font-size:1.2rem;font-weight:700"><%= user.username %></div>
+                            <div style="color:#8c8c8c;text-transform:uppercase;font-size:.8rem;letter-spacing:.06em;margin-top:.3rem"><%= user.role === 'admin' ? t('admin.admin_role') : t('admin.viewer') %> · <%= user.auth_provider %></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <% if (user.auth_provider === 'local') { %>
+            <section class="acc-grid">
+                <h2><%= t('profile.sign_in_details') %></h2>
+                <div>
+                    <div class="nf-field"><label for="acc-u"><%= t('profile.username') %></label><input id="acc-u" type="text" name="username" value="<%= user.username %>" autocomplete="username"></div>
+                    <div class="nf-field"><label for="acc-np"><%= t('profile.new_password') %></label><input id="acc-np" type="password" name="newPassword" placeholder="<%= t('profile.password_placeholder') %>" autocomplete="new-password"></div>
+                    <div class="nf-field"><label for="acc-cp"><%= t('profile.current_password') %></label><input id="acc-cp" type="password" name="currentPassword" placeholder="<%= t('profile.current_password_hint') %>" autocomplete="current-password"></div>
+                </div>
+            </section>
+            <% } else { %>
+            <section class="acc-grid"><h2><%= t('profile.sign_in_details') %></h2><div class="nf-alert info"><i class="fa-solid fa-shield-halved"></i> <%= t('profile.sso_note') %></div></section>
+            <% } %>
+
+            <section class="acc-grid">
+                <h2><%= t('profile.profiles') %></h2>
+                <div>
+                    <div class="acc-row"><span><%= t('profile.profile_count', { n: profileCount }) %></span><a href="/profiles?manage=1"><%= t('nav.manage_profiles') %></a></div>
+                    <% if (canAdmin) { %>
+                        <div class="acc-row"><span><%= t('profile.library_admin') %></span><a href="/admin"><%= t('nav.manage') %></a></div>
+                        <div class="acc-row"><span><%= t('nav.downloads') %></span><a href="/downloads"><%= t('profile.open') %></a></div>
+                    <% } %>
+                </div>
+            </section>
+
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1.8rem">
+                <button type="submit" class="nf-btn nf-btn-red"><%= t('profile.save') %></button>
+                <a href="/" class="nf-btn"><%= t('profile.back_home') %></a>
+                <a href="/logout" class="nf-btn nf-btn-ghost" style="margin-left:auto"><%= t('nav.sign_out') %></a>
+            </div>
+        </form>
+    </main>
+    <%- include('partials/tabbar', { pageType: 'account' }) %>
+    <%- include('partials/overlays') %>
+    <%- include('partials/scripts') %>
+</body>
+</html>

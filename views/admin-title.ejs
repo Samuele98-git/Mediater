@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+    <%- include('partials/head', { extraCss: 'admin' }) %>
+    <title><%= media.title || t('admin.new_title') %> – <%= t('nav.manage') %> – <%= APP_NAME %></title>
+</head>
+<body class="adm">
+<%
+const m = media;
+const isEp = m.type === 'episode';
+const isSeries = m.type === 'series';
+const fmtT = function (s) { if (s == null || s === '') return ''; s = Number(s); var h = Math.floor(s / 3600), mm = Math.floor((s % 3600) / 60), ss = s % 60; return (h ? h + ':' + String(mm).padStart(2, '0') : mm) + ':' + String(ss).padStart(2, '0'); };
+const action = typeof isNew !== 'undefined' && isNew ? (isEp ? '/admin/title/' + m.parentId + '/episode/new' : '/admin/title/new') : '/admin/title/' + m.id;
+const backHref = isEp ? '/admin/title/' + m.parentId : '/admin';
+%>
+<aside class="adm-side">
+    <a href="/" class="nf-logo"><%= APP_NAME %></a>
+    <a href="/admin" class="on"><i class="fa-solid fa-film"></i> <%= t('admin.library') %></a>
+    <a href="/admin?tab=users"><i class="fa-solid fa-users"></i> <%= t('admin.users') %></a>
+    <a href="/admin?tab=settings"><i class="fa-solid fa-sliders"></i> <%= t('admin.settings') %></a>
+    <a href="/admin?tab=system"><i class="fa-solid fa-server"></i> <%= t('admin.system') %></a>
+    <a href="/downloads"><i class="fa-solid fa-download"></i> <%= t('nav.downloads') %></a>
+    <span class="sep"></span>
+    <a href="/"><i class="fa-solid fa-arrow-left"></i> <%= t('admin.back_to_browse') %></a>
+</aside>
+<nav class="adm-mobilebar"><a href="<%= backHref %>"><i class="fa-solid fa-arrow-left"></i> <%= t('common.back') %></a><a href="/admin" class="on"><%= t('admin.library') %></a><a href="/downloads"><%= t('nav.downloads') %></a></nav>
+
+<main class="adm-main">
+    <div class="adm-top">
+        <div>
+            <a href="<%= backHref %>" style="color:#8c8c8c;font-size:.9rem"><i class="fa-solid fa-arrow-left"></i> <%= isEp && parent ? parent.title : t('admin.library') %></a>
+            <h1 style="margin-top:.4rem"><%= m.id ? (isEp ? t('player.season_episode', { s: m.season || 1, e: m.order }) + ' · ' : '') + (m.title || '') : (isEp ? t('admin.add_episode') : (isSeries ? t('admin.add_series') : t('admin.add_movie'))) %></h1>
+        </div>
+        <div class="tools">
+            <% if (m.id) { %>
+                <a class="nf-btn nf-btn-sm" href="<%= isEp ? '/watch/' + m.id : '/title/' + m.id %>"><i class="fa-solid fa-eye"></i> <%= t('admin.view') %></a>
+                <% if (m.path || isSeries) { %><form method="POST" action="/admin/title/<%= m.id %>/analyze"><button class="nf-btn nf-btn-sm" type="submit" title="<%= t('admin.rescan_hint') %>"><i class="fa-solid fa-arrows-rotate"></i> <%= t('admin.rescan_file') %></button></form><% } %>
+                <form method="POST" action="/admin/title/<%= m.id %>/delete" onsubmit="return confirm(<%= JSON.stringify(t(isSeries ? 'admin.delete_confirm' : 'admin.delete_one_confirm')) %>)"><button class="nf-btn nf-btn-sm" type="submit" style="color:#ff8a8f"><i class="fa-solid fa-trash"></i> <%= t('admin.delete') %></button></form>
+            <% } %>
+        </div>
+    </div>
+
+    <% if (typeof saved !== 'undefined' && saved) { %><div class="nf-alert ok adm-flash"><i class="fa-solid fa-circle-check"></i> <%= t('admin.saved') %></div><% } %>
+    <% if ((typeof error !== 'undefined' && error) || m.error) { %><div class="nf-alert err adm-flash"><i class="fa-solid fa-circle-exclamation"></i> <%= error || m.error %></div><% } %>
+    <% if (torrent) { %><div class="nf-alert info adm-flash"><i class="fa-solid fa-magnet"></i> <span><%= t('admin.from_torrent') %> <a href="/downloads" style="text-decoration:underline"><%= torrent.name %></a> — <%= t('downloads.status_' + torrent.status) %> <%= torrent.status === 'downloading' ? Math.floor(torrent.progress * 100) + '%' : '' %></span></div><% } %>
+
+    <% if (!isEp && tmdbOn) { %>
+    <div class="adm-card">
+        <h2><i class="fa-solid fa-wand-magic-sparkles"></i> <%= m.id ? t('admin.identify') : t('admin.find_on_tmdb') %> <small><%= m.tmdbId ? 'TMDB #' + m.tmdbId : '' %></small></h2>
+        <div class="adm-search-row">
+            <input class="adm-input" id="qaQuery" value="<%= m.title || '' %>" placeholder="<%= t('admin.tmdb_search_placeholder') %>">
+            <select id="qaType"><option value="movie" <%= m.type === 'movie' ? 'selected' : '' %>><%= t('admin.movie') %></option><option value="series" <%= isSeries ? 'selected' : '' %>><%= t('admin.series') %></option></select>
+            <button class="nf-btn nf-btn-sm" type="button" id="qaGo"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </div>
+        <div class="adm-tmdb" id="qaResults" data-mode="<%= m.id ? 'apply' : 'new' %>" data-id="<%= m.id || '' %>"></div>
+        <form method="POST" id="qaApply" action="/admin/title/<%= m.id %>/tmdb" hidden><input type="hidden" name="tmdbId"><input type="hidden" name="tmdbType"></form>
+    </div>
+    <% } %>
+
+    <form method="POST" action="<%= action %>" enctype="multipart/form-data" id="titleForm">
+        <% if (!m.id && !isEp) { %><input type="hidden" name="type" value="<%= m.type %>"><% } %>
+        <% if (m.tmdbId) { %><input type="hidden" name="tmdbId" value="<%= m.tmdbId %>"><% } %>
+        <% if (m.imdbId) { %><input type="hidden" name="imdbId" value="<%= m.imdbId %>"><% } %>
+        <div class="adm-card">
+            <h2><i class="fa-solid fa-circle-info"></i> <%= t('admin.details') %></h2>
+            <div class="adm-grid <%= isEp ? 'g3' : 'g2' %>">
+                <div class="adm-field" style="<%= isEp ? '' : '' %>"><label><%= isEp ? t('admin.episode_title') : t('admin.title_field') %></label><input type="text" name="title" value="<%= m.title || '' %>" <%= isEp ? '' : 'required' %>></div>
+                <% if (isEp) { %>
+                    <div class="adm-field"><label><%= t('admin.season') %></label><input type="number" min="0" name="season" value="<%= m.season || 1 %>"></div>
+                    <div class="adm-field"><label><%= t('admin.episode_number') %></label><input type="number" min="0" name="order" value="<%= m.order || 1 %>"></div>
+                <% } else { %>
+                    <div class="adm-field"><label><%= t('admin.genres') %></label><input type="text" name="genres" value="<%= m.genres || '' %>" placeholder="<%= t('admin.genres_placeholder') %>"></div>
+                <% } %>
+            </div>
+            <div class="adm-grid g4" style="margin-top:1rem">
+                <div class="adm-field"><label><%= t('admin.year') %></label><input type="number" name="releaseYear" value="<%= m.releaseYear || '' %>"></div>
+                <div class="adm-field"><label><%= t('admin.duration_min') %></label><input type="number" name="duration" value="<%= m.duration || '' %>"></div>
+                <div class="adm-field"><label><%= t('admin.maturity') %></label><input type="text" name="maturity" value="<%= m.maturity || '' %>" placeholder="<%= t('admin.maturity_placeholder') %>"></div>
+                <% if (!isEp) { %><div class="adm-field"><label><%= t('admin.category') %></label><input type="text" name="category" value="<%= m.category && m.category !== 'General' ? m.category : '' %>" placeholder="<%= t('admin.category_placeholder') %>"></div><% } %>
+            </div>
+            <% if (!isEp) { %>
+            <div class="adm-grid g2" style="margin-top:1rem">
+                <div class="adm-field"><label><%= t('admin.cast') %></label><input type="text" name="cast" value="<%= m.cast || '' %>"></div>
+                <div class="adm-field"><label><%= isSeries ? t('admin.creators') : t('admin.director') %></label><input type="text" name="director" value="<%= m.director || '' %>"></div>
+                <div class="adm-field"><label><%= t('admin.tagline') %></label><input type="text" name="tagline" value="<%= m.tagline || '' %>"></div>
+                <div class="adm-field"><label><%= t('admin.score') %></label><input type="number" step="0.1" min="0" max="10" name="rating" value="<%= m.rating || '' %>"></div>
+            </div>
+            <% } %>
+            <div class="adm-field" style="margin-top:1rem"><label><%= t('admin.description') %></label><textarea name="description" placeholder="<%= t('admin.description_placeholder') %>"><%= m.description || '' %></textarea></div>
+            <% if (!isEp) { %><label class="adm-check" style="margin-top:.6rem"><input type="checkbox" name="trending" <%= m.trending ? 'checked' : '' %>> <%= t('admin.show_trending') %></label><% } %>
+        </div>
+
+        <div class="adm-card">
+            <h2><i class="fa-regular fa-image"></i> <%= t('admin.artwork') %></h2>
+            <div class="adm-art">
+                <% const arts = isEp
+                    ? [{ f: 'thumbnail', u: 'thumbnailUrl', v: m.thumbnail, c: 'l', label: t('admin.episode_still') }]
+                    : [
+                        { f: 'poster', u: 'posterUrl', v: m.poster, c: 'p', label: t('admin.poster') },
+                        { f: 'thumbnail', u: 'thumbnailUrl', v: m.thumbnail, c: 'l', label: t('admin.card_image') },
+                        { f: 'backdrop', u: 'backdropUrl', v: m.backdrop, c: 'l', label: t('admin.backdrop') },
+                        { f: 'logo', u: 'logoUrlInput', v: m.logoUrl, c: 'logo', label: t('admin.logo') }
+                    ]; %>
+                <% arts.forEach(function (a) { %>
+                    <div class="adm-up">
+                        <label><%= a.label %></label>
+                        <div class="pv <%= a.c %><%= a.v ? ' has' : '' %>" style="<%= a.v ? 'background-image:url(' + JSON.stringify(a.v) + ')' : '' %>">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <input type="file" name="<%= a.f %>" accept="image/*" data-preview>
+                        </div>
+                        <input class="adm-input" type="text" name="<%= a.u %>" value="<%= a.v || '' %>" placeholder="URL" data-url-preview>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+
+        <% if (!isSeries) { %>
+        <div class="adm-card">
+            <h2><i class="fa-solid fa-video"></i> <%= t('admin.video_file') %></h2>
+            <% if (m.path) { %>
+                <div class="adm-video">
+                    <% if (videoOk) { %><i class="fa-solid fa-circle-check ok"></i><% } else { %><i class="fa-solid fa-triangle-exclamation bad"></i><% } %>
+                    <code><%= m.path %></code>
+                    <% if (probe) { %>
+                        <span class="adm-chips">
+                            <% if (probe.video) { %><span><%= (probe.video.codec || '').toUpperCase() %> <%= probe.video.width %>×<%= probe.video.height %><%= probe.video.hdr ? ' HDR' : '' %></span><% } %>
+                            <% probe.audio.forEach(function (a) { %><span><i class="fa-solid fa-volume-high"></i> <%= (a.codec || '').toUpperCase() %> <%= a.lang !== 'und' ? a.lang : '' %></span><% }) %>
+                            <% if (probe.subs.length) { %><span><i class="fa-regular fa-closed-captioning"></i> <%= probe.subs.length %></span><% } %>
+                            <% if (probe.duration) { %><span><%= fmtT(Math.round(probe.duration)) %></span><% } %>
+                        </span>
+                    <% } %>
+                    <% if (!videoOk) { %><span style="color:#f0a24a;font-size:.85rem"><%= t('admin.video_missing') %></span><% } %>
+                </div>
+            <% } %>
+            <div class="adm-grid g2">
+                <div class="adm-dropfile"><i class="fa-solid fa-cloud-arrow-up"></i> <%= t('admin.upload_video') %><b data-name></b><input type="file" name="video" accept="video/*,.mkv,.avi,.m2ts,.ts"></div>
+                <div class="adm-field"><label><%= t('admin.video_path') %></label><input type="text" name="videoPath" value="<%= m.path || '' %>" placeholder="<%= t('admin.video_path_placeholder') %>"><p class="adm-hint" style="margin:.5rem 0 0"><%= t('admin.video_path_hint') %></p></div>
+            </div>
+        </div>
+
+        <div class="adm-card">
+            <h2><i class="fa-solid fa-forward"></i> <%= t('admin.markers') %> <small><%= t('admin.markers_hint') %></small></h2>
+            <div class="adm-grid g3">
+                <div class="adm-field"><label><%= t('admin.intro_start') %></label><input type="text" name="introStart" value="<%= fmtT(m.introStart) %>" placeholder="0:45"></div>
+                <div class="adm-field"><label><%= t('admin.intro_end') %></label><input type="text" name="introEnd" value="<%= fmtT(m.introEnd) %>" placeholder="1:30"></div>
+                <div class="adm-field"><label><%= t('admin.credits_start') %></label><input type="text" name="creditsStart" value="<%= fmtT(m.creditsStart) %>" placeholder="42:10"></div>
+            </div>
+        </div>
+        <% } else { %>
+        <div class="adm-card">
+            <h2><i class="fa-solid fa-forward"></i> <%= t('admin.markers') %> <small><%= t('admin.series_markers_hint') %></small></h2>
+            <div class="adm-grid g2">
+                <div class="adm-field"><label><%= t('admin.intro_start') %></label><input type="text" name="introStart" value="<%= fmtT(m.introStart) %>" placeholder="0:45"></div>
+                <div class="adm-field"><label><%= t('admin.intro_end') %></label><input type="text" name="introEnd" value="<%= fmtT(m.introEnd) %>" placeholder="1:30"></div>
+            </div>
+        </div>
+        <% } %>
+
+        <% if (!isEp) { %>
+        <div class="adm-card">
+            <h2><i class="fa-brands fa-youtube"></i> <%= t('admin.trailer') %></h2>
+            <div class="adm-grid g2">
+                <div class="adm-field"><label><%= t('admin.trailer_url') %></label><input type="text" name="trailerUrl" value="<%= m.trailerUrl || '' %>" placeholder="https://www.youtube.com/watch?v=…"></div>
+                <div class="adm-dropfile"><i class="fa-solid fa-cloud-arrow-up"></i> <%= t('admin.upload_trailer') %><b data-name></b><input type="file" name="trailerFile" accept="video/*"></div>
+            </div>
+        </div>
+        <% } %>
+
+        <div class="adm-actions" style="position:sticky;bottom:0;background:linear-gradient(0deg,#141414 70%,rgba(20,20,20,0));padding:1rem 0;margin:0 0 1rem;z-index:5">
+            <button class="nf-btn nf-btn-red" type="submit"><i class="fa-solid fa-floppy-disk"></i> <%= m.id ? t('admin.save') : t('admin.create') %></button>
+            <a class="nf-btn" href="<%= backHref %>"><%= t('admin.cancel') %></a>
+        </div>
+    </form>
+
+    <% if (m.id && !isSeries) { %>
+    <div class="adm-card" id="subtitles">
+        <h2><i class="fa-regular fa-closed-captioning"></i> <%= t('admin.subtitles') %> <small>(<%= subtitles.length %>)</small></h2>
+        <% if (subtitles.length) { %>
+            <table class="adm-table"><tbody>
+                <% subtitles.forEach(function (s) { %>
+                    <tr><td data-label=""><b><%= s.label %></b> <small style="color:#8c8c8c"><%= s.lang %></small></td><td><code style="color:#8c8c8c;font-size:.8rem;word-break:break-all"><%= s.path %></code></td>
+                    <td style="text-align:right"><form method="POST" action="/admin/subtitles/<%= s.id %>/delete" style="display:inline"><button class="adm-icon danger" title="<%= t('admin.delete') %>"><i class="fa-solid fa-trash"></i></button></form></td></tr>
+                <% }) %>
+            </tbody></table>
+        <% } %>
+        <form method="POST" action="/admin/title/<%= m.id %>/subtitles" enctype="multipart/form-data" class="adm-grid g3" style="margin-top:1rem;align-items:end">
+            <div class="adm-field"><label><%= t('admin.subtitle_file') %></label><input class="adm-input" type="file" name="subtitle" accept=".srt,.vtt,.ass,.ssa" required></div>
+            <div class="adm-field"><label><%= t('admin.language') %></label><select name="lang"><option value=""><%= t('admin.detect') %></option><% langs.forEach(function (l) { %><option value="<%= l.code %>"><%= l.name %></option><% }) %></select></div>
+            <div><button class="nf-btn nf-btn-sm" type="submit"><i class="fa-solid fa-upload"></i> <%= t('admin.upload') %></button></div>
+        </form>
+    </div>
+    <% } %>
+
+    <% if (isSeries && m.id) { %>
+    <div class="adm-card" id="episodes">
+        <h2><i class="fa-solid fa-layer-group"></i> <%= t('admin.episodes') %> <small>(<%= episodes.length %>)</small></h2>
+        <div class="adm-actions" style="margin:0 0 1rem">
+            <a class="nf-btn nf-btn-red nf-btn-sm" href="/admin/title/<%= m.id %>/episode/new"><i class="fa-solid fa-plus"></i> <%= t('admin.add_episode') %></a>
+            <% if (m.tmdbId && tmdbOn) { %><form method="POST" action="/admin/title/<%= m.id %>/episodes/tmdb"><button class="nf-btn nf-btn-sm" type="submit"><i class="fa-solid fa-wand-magic-sparkles"></i> <%= t('admin.fetch_episodes') %></button></form><% } %>
+        </div>
+        <% if (!episodes.length) { %><p class="adm-hint"><%= t('admin.no_episodes_hint') %></p><% } %>
+        <% let lastSeason = null; %>
+        <table class="adm-table"><tbody>
+        <% episodes.forEach(function (e) { %>
+            <% if ((e.season || 1) !== lastSeason) { lastSeason = e.season || 1; %>
+                <tr><td colspan="5" style="background:transparent"><div class="adm-season"><%= t('player.season_n', { n: lastSeason }) %></div></td></tr>
+            <% } %>
+            <tr>
+                <td style="width:110px"><% if (e.thumbnail) { %><img class="ep-thumb" src="<%= e.thumbnail %>" alt="" loading="lazy"><% } else { %><span class="ep-thumb"></span><% } %></td>
+                <td data-label=""><b><%= e.order %>. <%= e.title %></b><br><small style="color:#8c8c8c"><%= e.duration ? e.duration + ' min' : '' %></small></td>
+                <td data-label="<%= t('admin.video_file') %>"><span class="adm-pill <%= e.path ? 'ok' : 'warn' %>"><%= e.path ? t('admin.has_video') : t('admin.no_video') %></span></td>
+                <td style="text-align:right;white-space:nowrap">
+                    <% if (e.path) { %><a class="adm-icon" href="/watch/<%= e.id %>" title="<%= t('admin.view') %>"><i class="fa-solid fa-play"></i></a><% } %>
+                    <a class="adm-icon" href="/admin/title/<%= e.id %>" title="<%= t('admin.edit') %>"><i class="fa-solid fa-pen"></i></a>
+                    <form method="POST" action="/admin/title/<%= e.id %>/delete" style="display:inline" onsubmit="return confirm(<%= JSON.stringify(t('admin.delete_one_confirm')) %>)"><button class="adm-icon danger" title="<%= t('admin.delete') %>"><i class="fa-solid fa-trash"></i></button></form>
+                </td>
+            </tr>
+        <% }) %>
+        </tbody></table>
+    </div>
+    <% } %>
+</main>
+<%- include('partials/overlays') %>
+<script>window.__adm = <%- jsonScript({ i18n: dict.admin || {} }) %>;</script>
+<%- include('partials/scripts') %>
+<script src="/js/admin.js?v=<%= assetVersion %>"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>">
+<head>
+    <% if (typeof APP_NAME !== 'undefined') { %><%- include('partials/head') %><% } %>
+    <title><%= typeof t !== 'undefined' ? t(code === 500 ? 'error.server_title' : 'error.lost_title') : 'Error' %></title>
+</head>
+<body style="padding-bottom:0">
+    <% if (typeof APP_NAME !== 'undefined') { %><header class="nf-plain-head" style="position:fixed;top:0;left:0;right:0;z-index:2"><a href="/" class="nf-logo"><%= APP_NAME %></a></header><% } %>
+    <main class="nf-error-page">
+        <div>
+            <h1><%= t(code === 500 ? 'error.server_title' : 'error.lost_title') %></h1>
+            <p><%= typeof message !== 'undefined' && message ? message : t(code === 500 ? 'error.server_text' : 'error.lost_text') %></p>
+            <a href="/" class="nf-btn nf-btn-white"><%= t('error.home', { app: APP_NAME }) %></a>
+            <div class="code"><%= t('error.code') %><b>NSES-<%= code %></b></div>
+        </div>
+    </main>
+</body>
+</html>
